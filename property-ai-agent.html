@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProHost AI — Property Management Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#C9A84C;--gold-l:#e8c87a;--gold-dim:rgba(201,168,76,0.15);
+  --bg:#070709;--s1:#0f0f13;--s2:#161619;--s3:#1d1d22;
+  --border:rgba(201,168,76,0.14);--border2:rgba(255,255,255,0.06);
+  --text:#EEEAE0;--muted:#6b6860;--muted2:#9a9690;
+  --green:#3dba7e;--red:#e05a5a;--blue:#4a9eff;--purple:#9b7ff4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;flex-direction:column}
+
+/* TOPBAR */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:52px;border-bottom:1px solid var(--border);
+  background:var(--s1);flex-shrink:0;
+}
+.logo{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.01em}
+.logo span{color:var(--gold)}
+.agent-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);font-weight:500}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.prop-selector{background:var(--s2);border:1px solid var(--border2);border-radius:7px;padding:5px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{
+  width:200px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;
+}
+.sidebar::-webkit-scrollbar{width:3px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border)}
+.nav-section{padding:14px 12px 6px;font-size:9px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.nav-item{
+  display:flex;align-items:center;gap:9px;padding:9px 14px;
+  font-size:12px;color:var(--muted2);cursor:pointer;transition:all .15s;
+  border-left:2px solid transparent;
+}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,0.03)}
+.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:var(--gold-dim)}
+.nav-icon{font-size:14px;width:18px;text-align:center}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.main::-webkit-scrollbar{width:4px}
+.main::-webkit-scrollbar-thumb{background:var(--border)}
+
+/* PANEL */
+.panel{display:none;flex:1;flex-direction:column}
+.panel.active{display:flex}
+
+/* CHAT PANEL */
+.chat-area{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.chat-area::-webkit-scrollbar{width:3px}
+.chat-area::-webkit-scrollbar-thumb{background:var(--border)}
+.msg{max-width:85%;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.msg-ai{align-self:flex-start}
+.msg-user{align-self:flex-end}
+.msg-bubble{
+  padding:11px 15px;border-radius:14px;font-size:13px;line-height:1.7;
+}
+.msg-ai .msg-bubble{background:var(--s2);border:1px solid var(--border2);border-bottom-left-radius:4px;color:var(--text)}
+.msg-user .msg-bubble{background:var(--gold-dim);border:1px solid var(--border);border-bottom-right-radius:4px;color:var(--text)}
+.msg-name{font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:500}
+.msg-ai .msg-name{padding-left:2px}
+.msg-user .msg-name{text-align:right;padding-right:2px}
+
+.chat-input-wrap{
+  border-top:1px solid var(--border);padding:14px 20px;background:var(--s1);
+  display:flex;gap:10px;align-items:flex-end;flex-shrink:0;
+}
+.chat-input{
+  flex:1;background:var(--s2);border:1px solid var(--border2);border-radius:10px;
+  padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;
+  outline:none;resize:none;min-height:40px;max-height:120px;transition:border .2s;
+}
+.chat-input:focus{border-color:var(--gold)}
+.send-btn{
+  background:var(--gold);border:none;border-radius:9px;
+  width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:15px;flex-shrink:0;transition:all .15s;
+}
+.send-btn:hover{background:var(--gold-l);transform:scale(1.05)}
+.send-btn:disabled{background:var(--s3);cursor:not-allowed;transform:none}
+
+.quick-actions{display:flex;gap:7px;padding:10px 20px 0;flex-wrap:wrap;flex-shrink:0}
+.qa{
+  background:var(--s2);border:1px solid var(--border2);border-radius:20px;
+  padding:5px 12px;font-size:11px;color:var(--muted2);cursor:pointer;transition:all .15s;
+}
+.qa:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+
+/* GRID PANEL */
+.grid-panel{padding:20px;overflow-y:auto;flex:1}
+.grid-panel::-webkit-scrollbar{width:3px}
+.grid-panel::-webkit-scrollbar-thumb{background:var(--border)}
+.panel-header{margin-bottom:20px}
+.panel-header h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--text)}
+.panel-header p{font-size:12px;color:var(--muted);margin-top:3px}
+
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:20px}
+.card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;transition:border .2s}
+.card:hover{border-color:rgba(201,168,76,0.3)}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:500;color:var(--text)}
+.card-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500}
+.badge-gold{background:var(--gold-dim);color:var(--gold);border:1px solid var(--border)}
+.badge-green{background:rgba(61,186,126,0.12);color:var(--green);border:1px solid rgba(61,186,126,0.2)}
+.badge-red{background:rgba(224,90,90,0.1);color:var(--red);border:1px solid rgba(224,90,90,0.2)}
+.badge-blue{background:rgba(74,158,255,0.1);color:var(--blue);border:1px solid rgba(74,158,255,0.2)}
+.stat-big{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:var(--gold);margin-bottom:2px}
+.stat-label{font-size:11px;color:var(--muted)}
+.stat-change{font-size:11px;margin-top:4px}
+.change-up{color:var(--green)}
+.change-dn{color:var(--red)}
+
+/* FORM ELEMENTS */
+.field{margin-bottom:13px}
+.field label{display:block;font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px}
+input,select,textarea{width:100%;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:9px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border .2s;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+select option{background:#1a1a20}
+textarea{resize:vertical;min-height:70px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{background:var(--gold);color:#000;border:none;border-radius:9px;padding:10px 18px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.02em}
+.btn:hover{background:var(--gold-l);transform:translateY(-1px)}
+.btn:disabled{background:var(--s3);color:var(--muted);cursor:not-allowed;transform:none}
+.btn-sm{padding:7px 14px;font-size:11px;border-radius:7px}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;transition:all .15s}
+.btn-ghost:hover{background:var(--gold-dim)}
+
+/* OUTPUT BOX */
+.out-box{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:14px;display:none;position:relative}
+.out-box.vis{display:block}
+.out-label{font-size:10px;font-weight:600;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.out-text{font-size:13px;color:var(--text);line-height:1.75;white-space:pre-wrap}
+.copy-fab{position:absolute;top:12px;right:12px;background:var(--gold-dim);border:1px solid var(--border);color:var(--gold);font-size:10px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.copy-fab:hover{background:rgba(201,168,76,.25)}
+
+/* LOADING */
+.spin-wrap{text-align:center;padding:28px;display:none}
+.spin-wrap.vis{display:block}
+.spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-wrap p{font-size:12px;color:var(--muted)}
+
+/* PROPERTY LIST */
+.prop-item{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;
+  background:var(--s2);border:1px solid var(--border2);border-radius:10px;margin-bottom:8px;
+  transition:border .2s;cursor:pointer;
+}
+.prop-item:hover{border-color:var(--border)}
+.prop-icon{width:38px;height:38px;border-radius:9px;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.prop-info{flex:1}
+.prop-name{font-size:13px;font-weight:500;color:var(--text)}
+.prop-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.prop-score{font-size:13px;font-weight:500;color:var(--gold)}
+.prop-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px;transition:color .15s}
+.prop-del:hover{color:var(--red)}
+
+/* ALERTS */
+.alert{border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.6;margin-bottom:10px}
+.alert-gold{background:rgba(201,168,76,0.08);border-left:2px solid var(--gold);color:#d4b96a}
+.alert-green{background:rgba(61,186,126,0.08);border-left:2px solid var(--green);color:#5dd4a0}
+.alert-red{background:rgba(224,90,90,0.08);border-left:2px solid var(--red);color:#e87878}
+
+/* PRICING */
+.pricing-result{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:14px;display:none}
+.pricing-result.vis{display:block}
+.price-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2)}
+.price-row:last-child{border:none}
+.price-type{font-size:12px;color:var(--muted2)}
+.price-val{font-size:15px;font-weight:500;color:var(--gold);font-family:'Syne',sans-serif}
+
+/* TABS inside panel */
+.inner-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--s2);border-radius:9px;padding:3px}
+.itab{flex:1;padding:7px;font-size:11px;font-weight:500;color:var(--muted);text-align:center;cursor:pointer;border-radius:7px;transition:all .15s;border:none;background:none;font-family:'DM Sans',sans-serif}
+.itab.active{background:var(--s3);color:var(--gold)}
+.ipanel{display:none}
+.ipanel.active{display:block}
+
+/* SETTINGS */
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border2)}
+.setting-row:last-child{border:none}
+.setting-info h4{font-size:13px;font-weight:500;color:var(--text)}
+.setting-info p{font-size:11px;color:var(--muted);margin-top:2px}
+.toggle{width:36px;height:20px;border-radius:10px;background:var(--s3);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--green)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s}
+.toggle.on::after{transform:translateX(16px)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* SETUP MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.modal{background:var(--s1);border:1px solid var(--border);border-radius:16px;width:100%;max-width:440px;padding:28px}
+.modal h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px;color:var(--text)}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.setup-step{display:flex;gap:12px;padding:12px;background:var(--s2);border-radius:8px;margin-bottom:8px;font-size:12px;color:var(--muted2);line-height:1.6}
+.step-n{width:22px;height:22px;border-radius:50%;background:var(--gold-dim);border:1px solid var(--border);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+</style>
+</head>
+<body>
+
+<!-- SETUP MODAL -->
+<div class="modal-overlay" id="setupModal">
+  <div class="modal">
+    <div style="font-size:28px;margin-bottom:10px">🏨</div>
+    <h2>Welcome to ProHost AI</h2>
+    <p>Tera personal STR & Hotel Management Agent. Pehle apna naam enter kar taaki agent personalized rahe.</p>
+    <div class="field">
+      <label>Tera Naam</label>
+      <input type="text" id="setupName" placeholder="e.g. Arjun" />
+    </div>
+    <div class="field">
+      <label>Teri Company/Brand Name (optional)</label>
+      <input type="text" id="setupBrand" placeholder="e.g. StayWell Properties" />
+    </div>
+    <div class="field">
+      <label>City / Region jahan properties hain</label>
+      <input type="text" id="setupCity" placeholder="e.g. Goa, Manali, Delhi" />
+    </div>
+    <div class="alert alert-gold" style="margin-bottom:16px">
+      💡 Ye agent Claude AI se powered hai — internet chahiye. Sab data teri device pe save hota hai.
+    </div>
+    <button class="btn" style="width:100%" onclick="setupComplete()">Launch My Agent →</button>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">ProHost<span>AI</span></div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <select class="prop-selector" id="activePropSelect" onchange="setActiveProp(this.value)">
+      <option value="all">All Properties</option>
+    </select>
+    <div class="agent-status"><div class="pulse"></div><span id="statusText">Agent Active</span></div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" onclick="showPanel('dashboard')"><span class="nav-icon">📊</span>Dashboard</div>
+    <div class="nav-item" onclick="showPanel('properties')"><span class="nav-icon">🏠</span>Properties</div>
+    <div class="nav-item" onclick="showPanel('guests')"><span class="nav-icon">💬</span>Guest AI</div>
+    <div class="nav-item" onclick="showPanel('pricing')"><span class="nav-icon">💰</span>Pricing AI</div>
+    <div class="nav-section">Clients</div>
+    <div class="nav-item" onclick="showPanel('clients')"><span class="nav-icon">🤝</span>My Clients</div>
+    <div class="nav-item" onclick="showPanel('onboard')"><span class="nav-icon">➕</span>Add Client</div>
+    <div class="nav-section">Operations</div>
+    <div class="nav-item" onclick="showPanel('tasks')"><span class="nav-icon">✅</span>Daily Tasks</div>
+    <div class="nav-item" onclick="showPanel('reviews')"><span class="nav-icon">⭐</span>Reviews AI</div>
+    <div class="nav-item" onclick="showPanel('discuss')"><span class="nav-icon">🧠</span>Discuss with AI</div>
+    <div class="nav-section">Setup</div>
+    <div class="nav-item" onclick="showPanel('settings')"><span class="nav-icon">⚙️</span>Settings</div>
+    <div class="nav-item" onclick="showPanel('automate')"><span class="nav-icon">🔗</span>Automation</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="p-dashboard">
+      <div class="grid-panel">
+        <div class="panel-header">
+          <h2 id="dashGreet">Good morning! 👋</h2>
+          <p id="dashSub">Here's your property overview for today.</p>
+        </div>
+        <div class="cards-grid">
+          <div class="card">
+            <div class="card-head"><span class="card-title">Properties</span><span class="card-badge badge-gold" id="propCount">0 Active</span></div>
+            <div class="stat-big" id="propNum">0</div>
+            <div class="stat-label">Total managed</div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Avg Review Score</span><span class="card-badge badge-green">Target: 4.8+</span></div>
+            <div class="stat-big" id="avgScore">–</div>
+            <div class="stat-label">Across all properties</div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Clients</span><span class="card-badge badge-blue" id="clientCount">0 Owners</span></div>
+            <div class="stat-big" id="clientNum">0</div>
+            <div class="stat-label">Active clients</div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Tasks Today</span><span class="card-badge badge-red" id="taskBadge">Check list</span></div>
+            <div class="stat-big" id="taskNum">–</div>
+            <div class="stat-label">Pending actions</div>
+          </div>
+        </div>
+        <div class="alert alert-gold" id="dailyTip">Loading your daily briefing...</div>
+        <div class="panel-header" style="margin-top:20px;margin-bottom:12px">
+          <h2 style="font-size:16px">Quick Actions</h2>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
+          <button class="btn" onclick="showPanel('guests')" style="font-size:12px;padding:10px">💬 Guest Reply</button>
+          <button class="btn" onclick="showPanel('pricing')" style="font-size:12px;padding:10px;background:var(--s2);color:var(--gold);border:1px solid var(--border)">💰 Check Pricing</button>
+          <button class="btn" onclick="showPanel('reviews')" style="font-size:12px;padding:10px;background:var(--s2);color:var(--gold);border:1px solid var(--border)">⭐ Review Reply</button>
+          <button class="btn" onclick="showPanel('discuss')" style="font-size:12px;padding:10px;background:var(--s2);color:var(--gold);border:1px solid var(--border)">🧠 Ask Agent</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROPERTIES -->
+    <div class="panel" id="p-properties">
+      <div class="grid-panel">
+        <div class="panel-header"><h2>Properties</h2><p>Apni sab properties manage karo</p></div>
+        <div class="inner-tabs">
+          <button class="itab active" onclick="itab(this,'prop-list')">My Properties</button>
+          <button class="itab" onclick="itab(this,'prop-add')">+ Add Property</button>
+        </div>
+        <div class="ipanel active" id="prop-list">
+          <div id="propListEl"></div>
+          <div id="propEmpty" class="alert alert-gold" style="display:none">Koi property nahi hai abhi. "Add Property" tab mein ja.</div>
+        </div>
+        <div class="ipanel" id="prop-add">
+          <div class="row2">
+            <div class="field"><label>Property Name</label><input type="text" id="pName" placeholder="Hillview Villa"/></div>
+            <div class="field"><label>Type</label><select id="pType"><option>Villa</option><option>Apartment</option><option>Farmhouse</option><option>Boutique Hotel</option><option>Homestay</option><option>Guesthouse</option></select></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Location</label><input type="text" id="pLoc" placeholder="Goa, North"/></div>
+            <div class="field"><label>Platform</label><select id="pPlat"><option>Airbnb</option><option>Booking.com</option><option>Both</option><option>Direct Only</option></select></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Current Review Score</label><input type="number" id="pScore" placeholder="4.7" step="0.1" min="1" max="5"/></div>
+            <div class="field"><label>Base Price/Night (₹)</label><input type="number" id="pPrice" placeholder="5000"/></div>
+          </div>
+          <div class="field"><label>Bedrooms</label><select id="pBeds"><option value="1">1 BHK</option><option value="2">2 BHK</option><option value="3">3 BHK</option><option value="4">4 BHK</option><option value="5+">5+ BHK</option></select></div>
+          <div class="field"><label>Owner / Client Name</label><input type="text" id="pOwner" placeholder="Rahul Mehta"/></div>
+          <div class="field"><label>Notes</label><textarea id="pNotes" placeholder="Any special features, issues, instructions..."></textarea></div>
+          <button class="btn" onclick="addProperty()">Save Property</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GUEST AI -->
+    <div class="panel" id="p-guests">
+      <div style="padding:16px 20px 0;flex-shrink:0">
+        <div class="panel-header" style="margin-bottom:10px"><h2>Guest AI</h2><p>Kisi bhi guest situation ke liye instant professional response</p></div>
+        <div class="inner-tabs">
+          <button class="itab active" onclick="itab(this,'g-quick')">Quick Reply</button>
+          <button class="itab" onclick="itab(this,'g-checkin')">Check-in/out</button>
+          <button class="itab" onclick="itab(this,'g-complaint')">Complaint</button>
+          <button class="itab" onclick="itab(this,'g-custom')">Custom</button>
+        </div>
+      </div>
+
+      <div style="padding:0 20px 20px;flex:1;overflow-y:auto">
+        <!-- Quick Reply -->
+        <div class="ipanel active" id="g-quick">
+          <div class="field"><label>Scenario</label>
+            <select id="gScenario">
+              <option value="booking_confirm">Booking Confirmation</option>
+              <option value="pre_arrival">Pre-arrival Info</option>
+              <option value="welcome">Welcome Message (Day of)</option>
+              <option value="mid_stay">Mid-stay Check-in</option>
+              <option value="checkout_reminder">Checkout Reminder</option>
+              <option value="review_request">Review Request</option>
+              <option value="late_checkout">Late Checkout Request</option>
+              <option value="early_checkin">Early Check-in Request</option>
+              <option value="amenity_question">Amenity Question</option>
+              <option value="noisy_guest">Noise Complaint (to guest)</option>
+              <option value="unauthorized_guest">Extra Guests Warning</option>
+              <option value="damage_claim">Damage Notice</option>
+            </select>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Guest Name</label><input type="text" id="gName" placeholder="Priya"/></div>
+            <div class="field"><label>Tone</label><select id="gTone"><option value="warm">Warm & Friendly</option><option value="professional">Professional</option><option value="firm">Firm but Polite</option></select></div>
+          </div>
+          <div class="field"><label>Extra Details (optional)</label><input type="text" id="gExtra" placeholder="e.g. checkout at 11 AM, staying 3 nights, property in Goa"/></div>
+          <button class="btn" onclick="generateGuestMsg()">Generate Message</button>
+          <div class="spin-wrap" id="gSpin"><div class="spinner"></div><p>Writing your message...</p></div>
+          <div class="out-box" id="gOut"><div class="out-label">✦ Message Ready</div><button class="copy-fab" onclick="copyOut('gOutText')">Copy</button><div class="out-text" id="gOutText"></div></div>
+        </div>
+
+        <!-- Check-in/out -->
+        <div class="ipanel" id="g-checkin">
+          <div class="alert alert-gold">Complete check-in/check-out message pakket generate karo — sab details ke saath</div>
+          <div class="row2">
+            <div class="field"><label>Guest Name</label><input type="text" id="ciName" placeholder="Amit"/></div>
+            <div class="field"><label>Type</label><select id="ciType"><option value="checkin_24h">Check-in (24h before)</option><option value="checkin_day">Check-in Day</option><option value="checkout_day_before">Checkout (Day before)</option><option value="checkout_morning">Checkout Morning</option></select></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Property Name</label><input type="text" id="ciProp" placeholder="Sunset Villa"/></div>
+            <div class="field"><label>Door Code</label><input type="text" id="ciCode" placeholder="1234"/></div>
+          </div>
+          <div class="field"><label>WiFi Details</label><input type="text" id="ciWifi" placeholder="Network: GuestNet | Pass: welcome123"/></div>
+          <div class="field"><label>Special Instructions</label><textarea id="ciInstructions" placeholder="Parking, gate code, any special notes..."></textarea></div>
+          <button class="btn" onclick="generateCheckin()">Generate Message</button>
+          <div class="spin-wrap" id="ciSpin"><div class="spinner"></div><p>Preparing message...</p></div>
+          <div class="out-box" id="ciOut"><div class="out-label">✦ Message Ready</div><button class="copy-fab" onclick="copyOut('ciOutText')">Copy</button><div class="out-text" id="ciOutText"></div></div>
+        </div>
+
+        <!-- Complaint -->
+        <div class="ipanel" id="g-complaint">
+          <div class="alert alert-red">Complaint handle karna ek art hai — agent best response dega</div>
+          <div class="field"><label>Guest Name</label><input type="text" id="compName" placeholder="Sneha"/></div>
+          <div class="field"><label>Complaint Type</label>
+            <select id="compType">
+              <option value="cleanliness">Cleanliness Issue</option>
+              <option value="ac_heat">AC / Heating Not Working</option>
+              <option value="wifi">WiFi Problem</option>
+              <option value="noisy_neighbors">Noisy Neighbors</option>
+              <option value="listing_mismatch">Listing Mismatch</option>
+              <option value="hot_water">No Hot Water</option>
+              <option value="bug_insect">Bug / Insect Issue</option>
+              <option value="lock_issue">Lock / Entry Problem</option>
+              <option value="missing_amenity">Missing Amenity</option>
+              <option value="other">Other Issue</option>
+            </select>
+          </div>
+          <div class="field"><label>Describe the Issue</label><textarea id="compDesc" placeholder="Guest ne kya complaint ki hai..."></textarea></div>
+          <div class="field"><label>What can you offer?</label><select id="compOffer"><option value="immediate_fix">Immediate Fix</option><option value="partial_refund">Partial Refund</option><option value="discount_next">Discount on Next Stay</option><option value="alternative">Alternative Solution</option><option value="nothing_yet">Assessing First</option></select></div>
+          <button class="btn" onclick="generateComplaint()">Generate Response</button>
+          <div class="spin-wrap" id="compSpin"><div class="spinner"></div><p>Crafting empathetic response...</p></div>
+          <div class="out-box" id="compOut"><div class="out-label">✦ Response Ready</div><button class="copy-fab" onclick="copyOut('compOutText')">Copy</button><div class="out-text" id="compOutText"></div></div>
+        </div>
+
+        <!-- Custom -->
+        <div class="ipanel" id="g-custom">
+          <div class="field"><label>Situation describe karo</label><textarea id="customSit" style="min-height:100px" placeholder="e.g. Guest kal 3 PM check-in chahta hai lekin checkout 11 AM hai aur new guest 2 PM pe aa raha hai — kya reply karein?"></textarea></div>
+          <div class="field"><label>Tone</label><select id="customTone"><option value="warm">Warm</option><option value="professional">Professional</option><option value="firm">Firm</option></select></div>
+          <button class="btn" onclick="generateCustom()">Generate Response</button>
+          <div class="spin-wrap" id="customSpin"><div class="spinner"></div><p>Thinking...</p></div>
+          <div class="out-box" id="customOut"><div class="out-label">✦ Response Ready</div><button class="copy-fab" onclick="copyOut('customOutText')">Copy</button><div class="out-text" id="customOutText"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRICING AI -->
+    <div class="panel" id="p-pricing">
+      <div class="grid-panel">
+        <div class="panel-header"><h2>Pricing AI</h2><p>Smart pricing recommendations based on real factors</p></div>
+        <div class="row2">
+          <div class="field"><label>Property Type</label><select id="prType"><option>Villa</option><option>Apartment</option><option>Farmhouse</option><option>Boutique Hotel</option><option>Homestay</option></select></div>
+          <div class="field"><label>Location</label><input type="text" id="prLoc" placeholder="Goa, North Anjuna"/></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Bedrooms</label><select id="prBeds"><option value="1">1 BHK</option><option value="2">2 BHK</option><option value="3">3 BHK</option><option value="4">4 BHK</option><option value="5+">5+ BHK</option></select></div>
+          <div class="field"><label>Current Base Price (₹)</label><input type="number" id="prBase" placeholder="5000"/></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Season</label><select id="prSeason"><option value="peak">Peak Season (Oct–Mar Goa)</option><option value="shoulder">Shoulder Season</option><option value="off">Off Season</option></select></div>
+          <div class="field"><label>Weekend / Weekday</label><select id="prDay"><option value="weekend">Weekend (Fri–Sun)</option><option value="weekday">Weekday (Mon–Thu)</option></select></div>
+        </div>
+        <div class="field"><label>Any Special Event nearby?</label><input type="text" id="prEvent" placeholder="e.g. Sunburn Festival, Diwali week, New Year (or leave blank)"/></div>
+        <div class="field"><label>Current Review Score</label><input type="number" id="prScore" placeholder="4.7" step="0.1" min="1" max="5"/></div>
+        <div class="field"><label>Occupancy last 30 days (%)</label><input type="number" id="prOcc" placeholder="65" min="0" max="100"/></div>
+        <button class="btn" onclick="getPricing()">Get Price Recommendation</button>
+        <div class="spin-wrap" id="prSpin"><div class="spinner"></div><p>Analyzing market data...</p></div>
+        <div class="pricing-result" id="prResult">
+          <div class="out-label">✦ Pricing Strategy</div>
+          <div id="prGrid"></div>
+          <div style="margin-top:12px" id="prNotes"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div class="panel" id="p-clients">
+      <div class="grid-panel">
+        <div class="panel-header"><h2>My Clients</h2><p>Property owners jo tere saath kaam karte hain</p></div>
+        <div id="clientListEl"></div>
+        <div id="clientEmpty" class="alert alert-gold" style="display:none">"Add Client" tab se naye client add karo.</div>
+      </div>
+    </div>
+
+    <!-- ONBOARD CLIENT -->
+    <div class="panel" id="p-onboard">
+      <div class="grid-panel">
+        <div class="panel-header"><h2>Add New Client</h2><p>Naye property owner ko onboard karo</p></div>
+        <div class="inner-tabs">
+          <button class="itab active" onclick="itab(this,'ob-form')">Client Details</button>
+          <button class="itab" onclick="itab(this,'ob-pitch')">Generate Pitch</button>
+          <button class="itab" onclick="itab(this,'ob-contract')">Contract Points</button>
+        </div>
+
+        <div class="ipanel active" id="ob-form">
+          <div class="row2">
+            <div class="field"><label>Owner Name</label><input type="text" id="obName" placeholder="Vikram Sharma"/></div>
+            <div class="field"><label>Phone/WhatsApp</label><input type="text" id="obPhone" placeholder="+91 98765..."/></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Property Name</label><input type="text" id="obProp" placeholder="Serene Retreat"/></div>
+            <div class="field"><label>Property Location</label><input type="text" id="obPropLoc" placeholder="Kasol, HP"/></div>
+          </div>
+          <div class="field"><label>How they found you</label><select id="obSource"><option>Instagram</option><option>LinkedIn</option><option>Referral</option><option>Cold Email</option><option>Direct Approach</option><option>Facebook Group</option></select></div>
+          <div class="field"><label>Current Pain Points</label><textarea id="obPain" placeholder="e.g. low bookings, bad reviews, too much time managing..."></textarea></div>
+          <div class="field"><label>Management Fee Agreed</label><input type="text" id="obFee" placeholder="e.g. 15% of revenue / ₹20,000/month"/></div>
+          <button class="btn" onclick="addClient()">Save Client</button>
+        </div>
+
+        <div class="ipanel" id="ob-pitch">
+          <div class="alert alert-gold" style="margin-bottom:14px">Owner se pehli meeting ke liye personalized pitch generate karo</div>
+          <div class="field"><label>Owner Name</label><input type="text" id="pitchName" placeholder="Vikram"/></div>
+          <div class="field"><label>Property Details</label><input type="text" id="pitchProp" placeholder="3BHK villa in Kasol, currently 4.2 stars, 50% occupancy"/></div>
+          <div class="field"><label>Their Main Problem</label><textarea id="pitchPain" placeholder="Low bookings, bad reviews, no time to manage..."></textarea></div>
+          <button class="btn" onclick="generatePitch()">Generate Pitch</button>
+          <div class="spin-wrap" id="pitchSpin"><div class="spinner"></div><p>Crafting your pitch...</p></div>
+          <div class="out-box" id="pitchOut"><div class="out-label">✦ Pitch Ready</div><button class="copy-fab" onclick="copyOut('pitchOutText')">Copy</button><div class="out-text" id="pitchOutText"></div></div>
+        </div>
+
+        <div class="ipanel" id="ob-contract">
+          <div class="alert alert-gold" style="margin-bottom:14px">Key contract points generate karo — legal review zaroor karo</div>
+          <div class="field"><label>Management Fee Structure</label><select id="ctFee"><option value="percentage">% of Revenue</option><option value="fixed">Fixed Monthly</option><option value="hybrid">Hybrid (Fixed + %)</option></select></div>
+          <div class="field"><label>Services Included</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">
+              <label style="text-transform:none;letter-spacing:0;font-size:12px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ctListing" checked style="width:auto"> Listing Management</label>
+              <label style="text-transform:none;letter-spacing:0;font-size:12px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ctGuest" checked style="width:auto"> Guest Communication</label>
+              <label style="text-transform:none;letter-spacing:0;font-size:12px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ctPrice" checked style="width:auto"> Dynamic Pricing</label>
+              <label style="text-transform:none;letter-spacing:0;font-size:12px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ctClean" style="width:auto"> Housekeeping Coord.</label>
+              <label style="text-transform:none;letter-spacing:0;font-size:12px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ctMaint" style="width:auto"> Maintenance Mgmt</label>
+              <label style="text-transform:none;letter-spacing:0;font-size:12px;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ctReport" checked style="width:auto"> Monthly Reports</label>
+            </div>
+          </div>
+          <div class="field"><label>Contract Duration</label><select id="ctDur"><option value="3 months">3 Months Trial</option><option value="6 months">6 Months</option><option value="1 year">1 Year</option><option value="ongoing">Ongoing (30-day notice)</option></select></div>
+          <button class="btn" onclick="generateContract()">Generate Contract Points</button>
+          <div class="spin-wrap" id="ctSpin"><div class="spinner"></div><p>Drafting terms...</p></div>
+          <div class="out-box" id="ctOut"><div class="out-label">✦ Contract Points</div><button class="copy-fab" onclick="copyOut('ctOutText')">Copy</button><div class="out-text" id="ctOutText"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="panel" id="p-tasks">
+      <div class="grid-panel">
+        <div class="panel-header"><h2>Daily Tasks</h2><p>AI se aaj ka kaam plan karwao</p></div>
+        <div class="field"><label>Properties count</label><input type="number" id="taskProps" placeholder="3" min="1"/></div>
+        <div class="field"><label>Checkouts today</label><input type="number" id="taskOut" placeholder="1" min="0"/></div>
+        <div class="field"><label>Check-ins today</label><input type="number" id="taskIn" placeholder="2" min="0"/></div>
+        <div class="field"><label>Any pending issues?</label><textarea id="taskIssues" placeholder="e.g. AC complaint in Property 2, review pending for last guest..."></textarea></div>
+        <button class="btn" onclick="genTasks()">Generate Today's Task List</button>
+        <div class="spin-wrap" id="taskSpin"><div class="spinner"></div><p>Planning your day...</p></div>
+        <div class="out-box" id="taskOut2"><div class="out-label">✦ Today's Game Plan</div><button class="copy-fab" onclick="copyOut('taskOutText')">Copy</button><div class="out-text" id="taskOutText"></div></div>
+      </div>
+    </div>
+
+    <!-- REVIEWS AI -->
+    <div class="panel" id="p-reviews">
+      <div class="grid-panel">
+        <div class="panel-header"><h2>Reviews AI</h2><p>Public review responses + review request messages</p></div>
+        <div class="inner-tabs">
+          <button class="itab active" onclick="itab(this,'r-respond')">Respond to Review</button>
+          <button class="itab" onclick="itab(this,'r-request')">Request Review</button>
+        </div>
+
+        <div class="ipanel active" id="r-respond">
+          <div class="field"><label>Star Rating Received</label><select id="revStars"><option value="5">⭐⭐⭐⭐⭐ 5 Stars</option><option value="4">⭐⭐⭐⭐ 4 Stars</option><option value="3">⭐⭐⭐ 3 Stars</option><option value="2">⭐⭐ 2 Stars</option><option value="1">⭐ 1 Star</option></select></div>
+          <div class="field"><label>Guest's Review Text (paste it)</label><textarea id="revText" placeholder="Paste the actual review here..."></textarea></div>
+          <div class="field"><label>Main Complaint (if any)</label><input type="text" id="revComplaint" placeholder="e.g. cleanliness, WiFi, noise"/></div>
+          <button class="btn" onclick="generateReviewReply()">Generate Public Response</button>
+          <div class="spin-wrap" id="revSpin"><div class="spinner"></div><p>Crafting perfect response...</p></div>
+          <div class="out-box" id="revOut"><div class="out-label">✦ Public Response</div><button class="copy-fab" onclick="copyOut('revOutText')">Copy</button><div class="out-text" id="revOutText"></div></div>
+        </div>
+
+        <div class="ipanel" id="r-request">
+          <div class="row2">
+            <div class="field"><label>Guest Name</label><input type="text" id="rrName" placeholder="Meera"/></div>
+            <div class="field"><label>Stay was</label><select id="rrStay"><option value="great">Great (mentioned loving it)</option><option value="good">Good (seemed happy)</option><option value="okay">Okay (no complaints)</option></select></div>
+          </div>
+          <div class="field"><label>Something specific to mention</label><input type="text" id="rrSpecific" placeholder="e.g. anniversary trip, brought their dog, first time in Goa"/></div>
+          <button class="btn" onclick="generateReviewReq()">Generate Review Request</button>
+          <div class="spin-wrap" id="rrSpin"><div class="spinner"></div><p>Writing...</p></div>
+          <div class="out-box" id="rrOut"><div class="out-label">✦ Review Request</div><button class="copy-fab" onclick="copyOut('rrOutText')">Copy</button><div class="out-text" id="rrOutText"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DISCUSS WITH AI -->
+    <div class="panel" id="p-discuss">
+      <div class="quick-actions" id="discussQuick">
+        <div class="qa" onclick="quickQ(this)">Owner ne fees cut maangi</div>
+        <div class="qa" onclick="quickQ(this)">Guest refund demand kar raha hai</div>
+        <div class="qa" onclick="quickQ(this)">Property occupancy low hai</div>
+        <div class="qa" onclick="quickQ(this)">Naya client convince karna hai</div>
+        <div class="qa" onclick="quickQ(this)">Pricing strategy review</div>
+        <div class="qa" onclick="quickQ(this)">Aaj kya priority hai?</div>
+      </div>
+      <div class="chat-area" id="discussChat"></div>
+      <div class="chat-input-wrap">
+        <textarea class="chat-input" id="discussInput" placeholder="Kuch bhi pucho — property management, decisions, clients..." rows="1" onkeydown="chatKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="discussSend" onclick="sendChat()">➤</button>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="panel" id="p-settings">
+      <div class="grid-panel">
+        <div class="panel-header"><h2>Settings</h2><p>Apna agent customize karo</p></div>
+        <div class="field"><label>Your Name</label><input type="text" id="settingName" oninput="saveSetting('name',this.value)"/></div>
+        <div class="field"><label>Brand Name</label><input type="text" id="settingBrand" oninput="saveSetting('brand',this.value)"/></div>
+        <div class="field"><label>City / Region</label><input type="text" id="settingCity" oninput="saveSetting('city',this.value)"/></div>
+        <div class="field"><label>Management Fee % (default)</label><input type="number" id="settingFee" placeholder="15" oninput="saveSetting('fee',this.value)"/></div>
+        <hr style="border:none;border-top:1px solid var(--border2);margin:16px 0">
+        <div class="setting-row">
+          <div class="setting-info"><h4>Hinglish Mode</h4><p>Messages Hinglish mein generate kare (Indian clients ke liye)</p></div>
+          <div class="toggle on" id="toggleHinglish" onclick="toggleSetting('hinglish',this)"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info"><h4>Formal English Mode</h4><p>International guests ke liye pure English</p></div>
+          <div class="toggle" id="toggleFormal" onclick="toggleSetting('formal',this)"></div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border2);margin:16px 0">
+        <button class="btn-ghost" onclick="clearData()" style="color:var(--red);border-color:rgba(224,90,90,0.3)">Reset All Data</button>
+      </div>
+    </div>
+
+    <!-- AUTOMATION GUIDE -->
+    <div class="panel" id="p-automate">
+      <div class="grid-panel">
+        <div class="panel-header"><h2>Real Automation Setup</h2><p>Actual Airbnb/Booking.com automation ke liye ye free stack use karo</p></div>
+
+        <div class="alert alert-gold">⚡ Is agent ke saath full automation ke liye neeche ka FREE stack use karo. Ek baar setup karo — sab automatic ho jaata hai.</div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head"><span class="card-title">Step 1 — Guesty / Hostaway (Free Trial)</span><span class="card-badge badge-green">Free Start</span></div>
+          <p style="font-size:12px;color:var(--muted);line-height:1.7">Channel Manager + PMS. Airbnb + Booking.com dono connect hote hain. Messages ek jagah se manage hote hain. Guest messages ke liye templates set karo jo auto-send ho jaayein.<br><br>
+          <strong style="color:var(--gold-l)">Free option:</strong> Hospitable.com — sirf Airbnb ke liye, free plan available, auto-messages set ho jaate hain.</p>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head"><span class="card-title">Step 2 — PriceLabs (Dynamic Pricing)</span><span class="card-badge badge-blue">$19.99/mo</span></div>
+          <p style="font-size:12px;color:var(--muted);line-height:1.7">Airbnb se connect hota hai. Automatically prices update karta hai based on demand, events, season. Ek baar rules set karo — phir automatic.<br><br>
+          <strong style="color:var(--gold-l)">Free alternative:</strong> Airbnb ki built-in Smart Pricing (less accurate but free)</p>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head"><span class="card-title">Step 3 — Zapier / Make (Automation)</span><span class="card-badge badge-green">Free Plan</span></div>
+          <p style="font-size:12px;color:var(--muted);line-height:1.7">Connect Airbnb → WhatsApp → Google Sheets → Email. Example automations:<br>
+          • New booking → WhatsApp notification to you<br>
+          • Checkout → Housekeeping WhatsApp alert<br>
+          • Review received → Email to you<br><br>
+          <strong style="color:var(--gold-l)">Setup:</strong> zapier.com → Create free account → Use templates</p>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head"><span class="card-title">Step 4 — Host This Agent Online (Free)</span><span class="card-badge badge-gold">Lifetime Free</span></div>
+          <p style="font-size:12px;color:var(--muted);line-height:1.7">Is HTML file ko GitHub Pages pe host karo — permanent free link milega.<br><br>
+          <strong style="color:var(--gold-l)">Steps:</strong><br>
+          1. GitHub.com → Free account banao<br>
+          2. New repository → "prohost-agent" naam do<br>
+          3. Is HTML file upload karo as "index.html"<br>
+          4. Settings → Pages → main branch select karo<br>
+          5. Tera link: username.github.io/prohost-agent<br><br>
+          Is link ko bookmark karo — kisi bhi device se access karo.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="card-title">Full Free Stack Summary</span><span class="card-badge badge-green">₹0/month</span></div>
+          <div style="font-size:12px;color:var(--muted2);line-height:2">
+            ✓ <strong style="color:var(--text)">Hospitable.com</strong> — Auto guest messages (Airbnb only, free)<br>
+            ✓ <strong style="color:var(--text)">Airbnb Smart Pricing</strong> — Auto price updates (free)<br>
+            ✓ <strong style="color:var(--text)">Zapier Free</strong> — 100 automations/month free<br>
+            ✓ <strong style="color:var(--text)">ProHost AI (this tool)</strong> — AI decisions, scripts, management<br>
+            ✓ <strong style="color:var(--text)">GitHub Pages</strong> — Free permanent hosting<br>
+            ✓ <strong style="color:var(--text)">Google Sheets</strong> — Free tracking & reports
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end main -->
+</div><!-- end layout -->
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+let state = JSON.parse(localStorage.getItem('prohost_v2') || '{}');
+if(!state.properties) state.properties=[];
+if(!state.clients) state.clients=[];
+if(!state.settings) state.settings={name:'',brand:'',city:'',fee:'15',hinglish:true,formal:false};
+if(!state.chatHistory) state.chatHistory=[];
+
+function save(){localStorage.setItem('prohost_v2',JSON.stringify(state))}
+
+// ── SETUP ──────────────────────────────────────────────
+window.onload=()=>{
+  if(state.settings.name){
+    document.getElementById('setupModal').style.display='none';
+    init();
+  }
+};
+function setupComplete(){
+  const n=document.getElementById('setupName').value.trim();
+  if(!n){alert('Naam zaroor dalna!');return}
+  state.settings.name=n;
+  state.settings.brand=document.getElementById('setupBrand').value.trim();
+  state.settings.city=document.getElementById('setupCity').value.trim();
+  save();
+  document.getElementById('setupModal').style.display='none';
+  init();
+}
+function init(){
+  loadSettings();
+  updateDashboard();
+  renderProperties();
+  renderClients();
+  loadDailyTip();
+  initChat();
+}
+
+// ── NAVIGATION ─────────────────────────────────────────
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('p-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+function itab(el,id){
+  const wrap=el.closest('.grid-panel')||el.closest('.panel');
+  wrap.querySelectorAll('.itab').forEach(t=>t.classList.remove('active'));
+  wrap.querySelectorAll('.ipanel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+// ── SETTINGS ───────────────────────────────────────────
+function loadSettings(){
+  const s=state.settings;
+  document.getElementById('settingName').value=s.name||'';
+  document.getElementById('settingBrand').value=s.brand||'';
+  document.getElementById('settingCity').value=s.city||'';
+  document.getElementById('settingFee').value=s.fee||'15';
+  if(s.hinglish) document.getElementById('toggleHinglish').classList.add('on');
+  else document.getElementById('toggleHinglish').classList.remove('on');
+}
+function saveSetting(k,v){state.settings[k]=v;save()}
+function toggleSetting(k,el){
+  el.classList.toggle('on');
+  state.settings[k]=el.classList.contains('on');
+  save();
+}
+function clearData(){if(confirm('Sab data delete ho jaayega. Sure?')){localStorage.removeItem('prohost_v2');location.reload()}}
+
+// ── DASHBOARD ──────────────────────────────────────────
+function updateDashboard(){
+  const n=state.settings.name;
+  const h=new Date().getHours();
+  const g=h<12?'Good morning':'h<17?Good afternoon':'Good evening';
+  document.getElementById('dashGreet').textContent=(h<12?'Good morning':'h<17?'Good afternoon':'Good evening')+', '+n+'! 👋';
+  document.getElementById('dashSub').textContent=state.settings.brand?'Welcome to '+state.settings.brand+' dashboard.':'Here\'s your property overview for today.';
+  const pc=state.properties.length;
+  document.getElementById('propNum').textContent=pc;
+  document.getElementById('propCount').textContent=pc+' Active';
+  const cc=state.clients.length;
+  document.getElementById('clientNum').textContent=cc;
+  document.getElementById('clientCount').textContent=cc+' Owners';
+  if(state.properties.length>0){
+    const avg=(state.properties.reduce((a,p)=>a+(parseFloat(p.score)||0),0)/state.properties.length).toFixed(1);
+    document.getElementById('avgScore').textContent=avg+'★';
+  }
+  // update prop selector
+  const sel=document.getElementById('activePropSelect');
+  sel.innerHTML='<option value="all">All Properties</option>';
+  state.properties.forEach(p=>{sel.innerHTML+=`<option value="${p.id}">${p.name}</option>`});
+}
+function setActiveProp(v){state.activeProp=v;save()}
+async function loadDailyTip(){
+  const el=document.getElementById('dailyTip');
+  if(!state.settings.name){el.textContent='Setup complete karo pehle.';return}
+  el.textContent='📋 Loading your daily briefing...';
+  try{
+    const r=await claude(`You are a property management expert. Give a 2-sentence daily tip or insight for a property manager named ${state.settings.name} who manages ${state.properties.length} properties in ${state.settings.city||'India'}. Keep it practical, specific, and actionable. In Hinglish.`);
+    el.textContent='💡 '+r;
+  }catch(e){el.textContent='💡 Aaj ka tip: Har guest ke checkout ke 2 ghante baad review request bhejo — ye best response time hai!'}
+}
+
+// ── PROPERTIES ─────────────────────────────────────────
+function addProperty(){
+  const name=document.getElementById('pName').value.trim();
+  if(!name){alert('Property name dalo!');return}
+  const prop={id:Date.now(),name,type:document.getElementById('pType').value,location:document.getElementById('pLoc').value,platform:document.getElementById('pPlat').value,score:document.getElementById('pScore').value,price:document.getElementById('pPrice').value,beds:document.getElementById('pBeds').value,owner:document.getElementById('pOwner').value,notes:document.getElementById('pNotes').value};
+  state.properties.push(prop);save();renderProperties();updateDashboard();
+  ['pName','pLoc','pScore','pPrice','pOwner','pNotes'].forEach(id=>document.getElementById(id).value='');
+  alert('Property saved! ✓');
+}
+function renderProperties(){
+  const el=document.getElementById('propListEl');
+  const empty=document.getElementById('propEmpty');
+  if(!state.properties.length){el.innerHTML='';empty.style.display='block';return}
+  empty.style.display='none';
+  el.innerHTML=state.properties.map(p=>`
+    <div class="prop-item">
+      <div class="prop-icon">${p.type==='Villa'?'🏡':p.type==='Apartment'?'🏢':p.type==='Farmhouse'?'🌾':p.type==='Boutique Hotel'?'🏨':'🏠'}</div>
+      <div class="prop-info">
+        <div class="prop-name">${p.name}</div>
+        <div class="prop-meta">${p.type} · ${p.location||'–'} · ${p.platform} · ${p.beds} BR</div>
+        ${p.owner?`<div class="prop-meta">Owner: ${p.owner}</div>`:''}
+      </div>
+      <div class="prop-score">${p.score?p.score+'★':'–'}</div>
+      <button class="prop-del" onclick="delProp(${p.id})">✕</button>
+    </div>`).join('');
+}
+function delProp(id){if(confirm('Delete?')){state.properties=state.properties.filter(p=>p.id!==id);save();renderProperties();updateDashboard()}}
+
+// ── CLIENTS ────────────────────────────────────────────
+function addClient(){
+  const n=document.getElementById('obName').value.trim();
+  if(!n){alert('Owner naam dalo!');return}
+  state.clients.push({id:Date.now(),name:n,phone:document.getElementById('obPhone').value,property:document.getElementById('obProp').value,location:document.getElementById('obPropLoc').value,source:document.getElementById('obSource').value,pain:document.getElementById('obPain').value,fee:document.getElementById('obFee').value,date:new Date().toLocaleDateString()});
+  save();renderClients();updateDashboard();alert('Client saved! ✓');
+}
+function renderClients(){
+  const el=document.getElementById('clientListEl');
+  const empty=document.getElementById('clientEmpty');
+  if(!state.clients.length){el.innerHTML='';empty.style.display='block';return}
+  empty.style.display='none';
+  el.innerHTML=state.clients.map(c=>`
+    <div class="prop-item">
+      <div class="prop-icon" style="background:rgba(61,186,126,0.12)">🤝</div>
+      <div class="prop-info">
+        <div class="prop-name">${c.name}</div>
+        <div class="prop-meta">${c.property||'Property TBD'} · ${c.location||'–'}</div>
+        <div class="prop-meta">Source: ${c.source} · Joined: ${c.date}</div>
+        ${c.fee?`<div class="prop-meta" style="color:var(--gold)">Fee: ${c.fee}</div>`:''}
+      </div>
+      <button class="prop-del" onclick="delClient(${c.id})">✕</button>
+    </div>`).join('');
+}
+function delClient(id){if(confirm('Delete?')){state.clients=state.clients.filter(c=>c.id!==id);save();renderClients();updateDashboard()}}
+
+// ── CLAUDE API ─────────────────────────────────────────
+async function claude(prompt,system=''){
+  const msgs=[{role:'user',content:prompt}];
+  const body={model:'claude-sonnet-4-20250514',max_tokens:1000,messages:msgs};
+  if(system) body.system=system;
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  if(d.error) throw new Error(d.error.message);
+  return d.content?.find(b=>b.type==='text')?.text||'';
+}
+
+// ── GUEST AI ───────────────────────────────────────────
+async function generateGuestMsg(){
+  const scenario=document.getElementById('gScenario').value;
+  const name=document.getElementById('gName').value||'the guest';
+  const tone=document.getElementById('gTone').value;
+  const extra=document.getElementById('gExtra').value;
+  const lang=state.settings.hinglish?'Hinglish (mix of Hindi and English, warm and conversational)':'professional English';
+  showLoad('gSpin');hideOut('gOut');
+  try{
+    const txt=await claude(`You are an expert property manager. Write a ${tone} guest message for scenario: "${scenario}". 
+Guest name: ${name}. 
+Extra context: ${extra||'standard stay'}.
+Language: ${lang}.
+Property manager name: ${state.settings.name||'Your Host'}.
+Make it warm, specific, and professional. 2-5 paragraphs. No markdown formatting, just clean text.`);
+    showOutput('gOut','gOutText',txt);
+  }catch(e){alert('Error: '+e.message)}
+  hideLoad('gSpin');
+}
+async function generateCheckin(){
+  const type=document.getElementById('ciType').value;
+  const name=document.getElementById('ciName').value||'Guest';
+  const prop=document.getElementById('ciProp').value||'the property';
+  const code=document.getElementById('ciCode').value;
+  const wifi=document.getElementById('ciWifi').value;
+  const inst=document.getElementById('ciInstructions').value;
+  const lang=state.settings.hinglish?'Hinglish':'English';
+  showLoad('ciSpin');hideOut('ciOut');
+  try{
+    const txt=await claude(`Write a ${type} message for guest ${name} at ${prop}. 
+Door code: ${code||'provided separately'}. WiFi: ${wifi||'in welcome book'}. 
+Special instructions: ${inst||'none'}.
+Host name: ${state.settings.name||'Your Host'}.
+Language: ${lang}. Format with clear sections. Friendly and detailed.`);
+    showOutput('ciOut','ciOutText',txt);
+  }catch(e){alert('Error: '+e.message)}
+  hideLoad('ciSpin');
+}
+async function generateComplaint(){
+  const name=document.getElementById('compName').value||'Guest';
+  const type=document.getElementById('compType').value;
+  const desc=document.getElementById('compDesc').value;
+  const offer=document.getElementById('compOffer').value;
+  showLoad('compSpin');hideOut('compOut');
+  try{
+    const txt=await claude(`You are an expert property manager. Write an empathetic, professional complaint response.
+Guest: ${name}. Issue: ${type}. Description: ${desc||'standard complaint'}.
+What you can offer: ${offer}.
+Host: ${state.settings.name||'Your Host'}.
+Language: ${state.settings.hinglish?'Hinglish':'English'}.
+Formula: Acknowledge → Empathize → Own it → Action with timeline → Offer. Never be defensive. 3-4 paragraphs.`);
+    showOutput('compOut','compOutText',txt);
+  }catch(e){alert('Error: '+e.message)}
+  hideLoad('compSpin');
+}
+async function generateCustom(){
+  const sit=document.getElementById('customSit').value;
+  if(!sit.trim()){alert('Situation describe karo!');return}
+  showLoad('customSpin');hideOut('customOut');
+  try{
+    const txt=await claude(`You are an expert property manager. Handle this situation professionally:
+${sit}
+Host: ${state.settings.name||'Your Host'}. City: ${state.settings.city||'India'}.
+Write the actual message/response to send. Language: ${state.settings.hinglish?'Hinglish':'English'}. No markdown.`);
+    showOutput('customOut','customOutText',txt);
+  }catch(e){alert('Error: '+e.message)}
+  hideLoad('customSpin');
+}
+
+// ── PRICING ────────────────────────────────────────────
+async function getPricing(){
+  const type=document.getElementById('prType').value;
+  const loc=document.getElementById('prLoc').value||'India';
+  const beds=document.getElementById('prBeds').value;
+  const base=document.getElementById('prBase').value||5000;
+  const season=document.getElementById('prSeason').value;
+  const day=document.getElementById('prDay').value;
+  const event=document.getElementById('prEvent').value;
+  const score=document.getElementById('prScore').value;
+  const occ=document.getElementById('prOcc').value;
+  showLoad('prSpin');document.getElementById('prResult').classList.remove('vis');
+  try{
+    const txt=await claude(`You are a pricing expert for STR properties in India. Give specific price recommendations.
+Property: ${beds} ${type} in ${loc}. Current base price: ₹${base}/night.
+Season: ${season}. Day type: ${day}. Nearby event: ${event||'none'}. Review score: ${score||'4.5'}. Recent occupancy: ${occ||'65'}%.
+Respond ONLY as JSON:
+{"base_price":"₹X,XXX","weekend_price":"₹X,XXX","event_price":"₹X,XXX","min_price":"₹X,XXX","reasoning":"2-3 sentences","tip":"1 actionable tip","increase_pct":"X%"}`);
+    const clean=txt.replace(/\`\`\`json|\`\`\`/g,'').trim();
+    const d=JSON.parse(clean);
+    document.getElementById('prGrid').innerHTML=`
+      <div class="price-row"><span class="price-type">Recommended Base (weekday)</span><span class="price-val">${d.base_price}</span></div>
+      <div class="price-row"><span class="price-type">Weekend Price</span><span class="price-val">${d.weekend_price}</span></div>
+      <div class="price-row"><span class="price-type">Event/Festival Price</span><span class="price-val">${d.event_price}</span></div>
+      <div class="price-row"><span class="price-type">Minimum Price (don't go below)</span><span class="price-val">${d.min_price}</span></div>
+      <div class="price-row"><span class="price-type">Revenue increase potential</span><span class="price-val" style="color:var(--green)">${d.increase_pct}</span></div>`;
+    document.getElementById('prNotes').innerHTML=`<div class="alert alert-gold">${d.reasoning}</div><div class="alert alert-green">💡 ${d.tip}</div>`;
+    document.getElementById('prResult').classList.add('vis');
+  }catch(e){alert('Error. Try again: '+e.message)}
+  hideLoad('prSpin');
+}
+
+// ── ONBOARD ────────────────────────────────────────────
+async function generatePitch(){
+  const name=document.getElementById('pitchName').value||'the owner';
+  const prop=document.getElementById('pitchProp').value;
+  const pain=document.getElementById('pitchPain').value;
+  showLoad('pitchSpin');hideOut('pitchOut');
+  try{
+    const txt=await claude(`You are a property management sales expert in India. Write a personalized sales pitch for a first meeting with a property owner.
+Owner: ${name}. Property: ${prop||'STR property in India'}. Their pain: ${pain||'low bookings and management stress'}.
+Your name: ${state.settings.name}. Your brand: ${state.settings.brand||'property management services'}.
+Write a compelling 5-7 paragraph pitch in ${state.settings.hinglish?'Hinglish':'English'} that: identifies their pain, shows you understand, presents your solution, shows ROI, ends with clear next step. No markdown.`);
+    showOutput('pitchOut','pitchOutText',txt);
+  }catch(e){alert('Error: '+e.message)}
+  hideLoad('pitchSpin');
+}
+async function generateContract(){
+  const fee=document.getElementById('ctFee').value;
+  const dur=document.getElementById('ctDur').value;
+  const services=[];
+  if(document.getElementById('ctListing').checked) services.push('Listing Management');
+  if(document.getElementById('ctGuest').checked) services.push('Guest Communication 24/7');
+  if(document.getElementById('ctPrice').checked) services.push('Dynamic Pricing');
+  if(document.getElementById('ctClean').checked) services.push('Housekeeping Coordination');
+  if(document.getElementById('ctMaint').checked) services.push('Maintenance Management');
+  if(document.getElementById('ctReport').checked) services.push('Monthly Reports');
+  showLoad('ctSpin');hideOut('ctOut');
+  try{
+    const txt=await claude(`Generate key contract points for a property management agreement. 
+Fee structure: ${fee}. Duration: ${dur}. Services: ${services.join(', ')}.
+Manager: ${state.settings.name}. 
+Write 8-12 clear contract points covering: services, fees, payment, termination, liability, reporting, maintenance authority, and dispute resolution. In ${state.settings.hinglish?'Hinglish':'English'}. No markdown.
+Note: These are key points only — recommend professional legal review.`);
+    showOutput('ctOut','ctOutText',txt);
+  }catch(e){alert('Error: '+e.message)}
+  hideLoad('ctSpin');
+}
+
+// ── TASKS ──────────────────────────────────────────────
+async function genTasks(){
+  const props=document.getElementById('taskProps').value||state.properties.length||1;
+  const outs=document.getElementById('taskOut').value||0;
+  const ins=document.getElementById('taskIn').value||0;
+  const issues=document.getElementById('taskIssues').value;
+  showLoad('taskSpin');hideOut('taskOut2');
+  try{
+    const txt=await claude(`Create a prioritized daily task list for a property manager.
+Properties: ${props}. Checkouts today: ${outs}. Check-ins today: ${ins}. Pending issues: ${issues||'none'}.
+Manager: ${state.settings.name}. City: ${state.settings.city||'India'}.
+Create a morning-to-evening schedule with specific timed tasks. Include: guest comms, housekeeping follow-up, pricing check, review monitoring. In ${state.settings.hinglish?'Hinglish':'English'}. Practical and specific.`);
+    showOutput('taskOut2','taskOutText',txt);
+  }catch(e){alert('Error: '+e.message)}
+  hideLoad('taskSpin');
+}
+
+// ── REVIEWS ────────────────────────────────────────────
+async function generateReviewReply(){
+  const stars=document.getElementById('revStars').value;
+  const text=document.getElementById('revText').value;
+  const complaint=document.getElementById('revComplaint').value;
+  showLoad('revSpin');hideOut('revOut');
+  try{
+    const txt=await claude(`Write a professional PUBLIC response to a ${stars}-star review for a property managed by ${state.settings.name}.
+Review text: ${text||'No specific review text provided'}.
+Main complaint: ${complaint||'none'}.
+Rules: Be professional, empathetic, never defensive. If 4-5 star: thank warmly, highlight positives. If 1-3 star: acknowledge issue, explain action taken, invite back. Max 100 words. In English (public reviews should be English).`);
+    showOutput('revOut','revOutText',txt);
+  }catch(e){alert('Error: '+e.message)}
+  hideLoad('revSpin');
+}
+async function generateReviewReq(){
+  const name=document.getElementById('rrName').value||'Guest';
+  const stay=document.getElementById('rrStay').value;
+  const specific=document.getElementById('rrSpecific').value;
+  showLoad('rrSpin');hideOut('rrOut');
+  try{
+    const txt=await claude(`Write a warm review request message to send to a guest after checkout.
+Guest: ${name}. Stay quality: ${stay}. Personal detail: ${specific||'enjoyable stay'}.
+Host: ${state.settings.name}. 
+Make it personal, not templated. Mention I've already reviewed them. Keep it short (3-4 sentences). Language: ${state.settings.hinglish?'Hinglish':'English'}. No markdown.`);
+    showOutput('rrOut','rrOutText',txt);
+  }catch(e){alert('Error: '+e.message)}
+  hideLoad('rrSpin');
+}
+
+// ── CHAT ───────────────────────────────────────────────
+function initChat(){
+  const chat=document.getElementById('discussChat');
+  const name=state.settings.name;
+  chat.innerHTML=`<div class="msg msg-ai"><div class="msg-name">ProHost Agent</div><div class="msg-bubble">Namaste ${name}! 👋 Main tera personal property management expert hoon. Koi bhi decision, problem, ya situation — seedha pucho. Main help karunga. Kya chal raha hai aaj?</div></div>`;
+  state.chatHistory=[{role:'system',content:`You are ProHost, an expert AI property management consultant for ${name} who manages STR properties and hotels in ${state.settings.city||'India'}. Their brand: ${state.settings.brand||'property management'}. Respond in ${state.settings.hinglish?'Hinglish (friendly mix of Hindi and English)':'English'}. Be practical, specific, and action-oriented. Ask clarifying questions when needed. Never give generic advice — always be specific to their situation.`}];
+}
+async function sendChat(){
+  const input=document.getElementById('discussInput');
+  const msg=input.value.trim();
+  if(!msg) return;
+  input.value='';input.style.height='40px';
+  const chat=document.getElementById('discussChat');
+  chat.innerHTML+=`<div class="msg msg-user"><div class="msg-name">You</div><div class="msg-bubble">${msg}</div></div>`;
+  chat.scrollTop=chat.scrollHeight;
+  document.getElementById('discussSend').disabled=true;
+  const thinkEl=document.createElement('div');
+  thinkEl.className='msg msg-ai';
+  thinkEl.innerHTML='<div class="msg-name">ProHost Agent</div><div class="msg-bubble" style="color:var(--muted)">Soch raha hoon...</div>';
+  chat.appendChild(thinkEl);chat.scrollTop=chat.scrollHeight;
+  state.chatHistory.push({role:'user',content:msg});
+  try{
+    const messages=state.chatHistory.filter(m=>m.role!=='system');
+    const sys=state.chatHistory.find(m=>m.role==='system')?.content||'';
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:messages.slice(-10)})});
+    const d=await r.json();
+    const reply=d.content?.find(b=>b.type==='text')?.text||'Error hua, dobara try karo.';
+    thinkEl.querySelector('.msg-bubble').textContent=reply;
+    thinkEl.querySelector('.msg-bubble').style.color='';
+    state.chatHistory.push({role:'assistant',content:reply});
+    save();
+  }catch(e){thinkEl.querySelector('.msg-bubble').textContent='Network error. Try again.'}
+  document.getElementById('discussSend').disabled=false;
+  chat.scrollTop=chat.scrollHeight;
+}
+function quickQ(el){
+  document.getElementById('discussInput').value=el.textContent;
+  sendChat();
+}
+function chatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}}
+function autoResize(el){el.style.height='40px';el.style.height=Math.min(el.scrollHeight,120)+'px'}
+
+// ── HELPERS ────────────────────────────────────────────
+function showLoad(id){document.getElementById(id).classList.add('vis')}
+function hideLoad(id){document.getElementById(id).classList.remove('vis')}
+function showOutput(boxId,textId,txt){const b=document.getElementById(boxId);const t=document.getElementById(textId);t.textContent=txt;b.classList.add('vis')}
+function hideOut(id){document.getElementById(id).classList.remove('vis')}
+function copyOut(id){const t=document.getElementById(id);if(!t) return;navigator.clipboard.writeText(t.textContent).then(()=>{event.target.textContent='Copied!';setTimeout(()=>event.target.textContent='Copy',2000)})}
+</script>
+</body>
+</html>
