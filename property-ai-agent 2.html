@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ProHost AI — Property Management Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#C9A84C;--gold-l:#e8c87a;--gdim:rgba(201,168,76,0.15);--bg:#070709;--s1:#0f0f13;--s2:#161619;--s3:#1d1d22;--bdr:rgba(201,168,76,0.18);--bdr2:rgba(255,255,255,0.07);--txt:#EEEAE0;--mt:#6b6860;--mt2:#9a9690;--grn:#3dba7e;--red:#e05a5a;--blu:#4a9eff;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);}
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.mbox{background:var(--s1);border:1px solid var(--bdr);border-radius:16px;width:100%;max-width:400px;padding:28px;}
+.mbox h2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;}
+.mbox p{font-size:13px;color:var(--mt);margin-bottom:20px;line-height:1.6;}
+.lbtn{width:100%;padding:16px;background:var(--gold);color:#000;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;cursor:pointer;display:block;-webkit-appearance:none;touch-action:manipulation;margin-top:4px;}
+.lbtn:active{opacity:.9;}
+/* TOPBAR */
+.tb{display:flex;align-items:center;justify-content:space-between;padding:0 14px;height:50px;border-bottom:1px solid var(--bdr);background:var(--s1);flex-shrink:0;}
+.logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;}
+.logo s2{color:var(--gold);}
+.adot{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--grn);}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--grn);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.psel{background:var(--s2);border:1px solid var(--bdr2);border-radius:7px;padding:5px 8px;color:var(--txt);font-size:11px;outline:none;max-width:100px;}
+/* LAYOUT */
+.app{display:flex;height:calc(100vh - 50px);}
+/* SIDEBAR */
+.sb{width:185px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--bdr);overflow-y:auto;display:flex;flex-direction:column;}
+.sb::-webkit-scrollbar{width:2px;}
+.sb::-webkit-scrollbar-thumb{background:var(--bdr);}
+.nsec{padding:12px 12px 4px;font-size:9px;font-weight:600;color:var(--mt);letter-spacing:.1em;text-transform:uppercase;}
+.ni{display:flex;align-items:center;gap:8px;padding:9px 13px;font-size:12px;color:var(--mt2);cursor:pointer;border-left:2px solid transparent;transition:all .15s;user-select:none;}
+.ni:hover{color:var(--txt);background:rgba(255,255,255,0.03);}
+.ni.active{color:var(--gold);border-left-color:var(--gold);background:var(--gdim);}
+.nico{font-size:13px;width:15px;text-align:center;}
+/* MAIN */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.panel{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.panel.active{display:flex;}
+.gp{flex:1;overflow-y:auto;padding:16px;}
+.gp::-webkit-scrollbar{width:3px;}
+.gp::-webkit-scrollbar-thumb{background:var(--bdr);}
+/* ELEMENTS */
+.ph{margin-bottom:16px;}
+.ph h2{font-family:'Syne',sans-serif;font-size:19px;font-weight:700;}
+.ph p{font-size:12px;color:var(--mt);margin-top:2px;}
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.card{background:var(--s1);border:1px solid var(--bdr);border-radius:12px;padding:13px;}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.ct{font-size:12px;font-weight:500;}
+.badge{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:500;}
+.bg{background:rgba(201,168,76,0.12);color:var(--gold);border:1px solid rgba(201,168,76,0.25);}
+.bgr{background:rgba(61,186,126,0.1);color:var(--grn);border:1px solid rgba(61,186,126,0.2);}
+.bbl{background:rgba(74,158,255,0.1);color:var(--blu);border:1px solid rgba(74,158,255,0.2);}
+.stat{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;color:var(--gold);}
+.sl{font-size:11px;color:var(--mt);margin-top:2px;}
+.field{margin-bottom:11px;}
+.field label{display:block;font-size:10px;font-weight:600;color:var(--mt);letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px;}
+input[type=text],input[type=number],select,textarea{width:100%;background:var(--s2);border:1px solid var(--bdr2);border-radius:8px;padding:9px 11px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;-webkit-appearance:none;transition:border .2s;}
+input[type=text]:focus,input[type=number]:focus,select:focus,textarea:focus{border-color:var(--gold);}
+select option{background:#1a1a20;}
+textarea{resize:vertical;min-height:65px;}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn{background:var(--gold);color:#000;border:none;border-radius:9px;padding:11px 18px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation;-webkit-appearance:none;}
+.btn:active{opacity:.9;}
+.btn:disabled{background:var(--s3);color:var(--mt);}
+.bfull{width:100%;}
+.bghost{background:transparent;border:1px solid var(--bdr);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:12px;padding:8px 14px;border-radius:8px;cursor:pointer;-webkit-appearance:none;}
+/* INNER TABS */
+.itabs{display:flex;gap:3px;margin-bottom:13px;background:var(--s2);border-radius:9px;padding:3px;}
+.itab{flex:1;padding:7px 3px;font-size:11px;font-weight:500;color:var(--mt);text-align:center;cursor:pointer;border-radius:7px;border:none;background:none;font-family:'DM Sans',sans-serif;touch-action:manipulation;}
+.itab.active{background:var(--s3);color:var(--gold);}
+.ip{display:none;}
+.ip.active{display:block;}
+/* OUTPUT */
+.ob{background:var(--s2);border:1px solid var(--bdr);border-radius:10px;padding:13px;margin-top:12px;display:none;position:relative;}
+.ob.vis{display:block;}
+.ol{font-size:10px;font-weight:600;color:var(--grn);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px;}
+.ot{font-size:13px;line-height:1.75;white-space:pre-wrap;}
+.cbtn{position:absolute;top:11px;right:11px;background:var(--gdim);border:1px solid var(--bdr);color:var(--gold);font-size:10px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;touch-action:manipulation;}
+/* SPINNER */
+.sw{text-align:center;padding:22px;display:none;}
+.sw.vis{display:block;}
+.sp{width:28px;height:28px;border:2px solid var(--bdr2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sw p{font-size:12px;color:var(--mt);}
+/* ALERTS */
+.al{border-radius:8px;padding:10px 13px;font-size:12px;line-height:1.6;margin-bottom:11px;}
+.ag{background:rgba(201,168,76,0.08);border-left:2px solid var(--gold);color:#d4b96a;}
+.ar{background:rgba(224,90,90,0.08);border-left:2px solid var(--red);color:#e87878;}
+.agr{background:rgba(61,186,126,0.08);border-left:2px solid var(--grn);color:#5dd4a0;}
+/* PROP ITEMS */
+.pi{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--s2);border:1px solid var(--bdr2);border-radius:10px;margin-bottom:8px;}
+.pico{width:34px;height:34px;border-radius:9px;background:var(--gdim);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.pinf{flex:1;}
+.pnm{font-size:13px;font-weight:500;}
+.pmt{font-size:11px;color:var(--mt);margin-top:2px;}
+.pdl{background:none;border:none;color:var(--mt);cursor:pointer;font-size:13px;padding:4px;touch-action:manipulation;}
+/* PRICING */
+.pr{background:var(--s2);border:1px solid var(--bdr);border-radius:10px;padding:14px;margin-top:12px;display:none;}
+.pr.vis{display:block;}
+.prow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bdr2);}
+.prow:last-child{border:none;}
+.pty{font-size:12px;color:var(--mt2);}
+.pvl{font-size:14px;font-weight:600;color:var(--gold);font-family:'Syne',sans-serif;}
+/* CHAT */
+.ca{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;}
+.ca::-webkit-scrollbar{width:3px;}
+.ca::-webkit-scrollbar-thumb{background:var(--bdr);}
+.msg{max-width:88%;}
+.mai{align-self:flex-start;}
+.mus{align-self:flex-end;}
+.mb{padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.7;}
+.mai .mb{background:var(--s2);border:1px solid var(--bdr2);border-bottom-left-radius:3px;}
+.mus .mb{background:var(--gdim);border:1px solid var(--bdr);border-bottom-right-radius:3px;}
+.mn{font-size:10px;color:var(--mt);margin-bottom:3px;font-weight:500;}
+.mus .mn{text-align:right;}
+.cbot{border-top:1px solid var(--bdr);padding:12px 14px;background:var(--s1);flex-shrink:0;}
+.cwr{position:relative;}
+.cinp{width:100%;background:var(--s2);border:1px solid var(--bdr2);border-radius:10px;padding:10px 46px 10px 12px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;resize:none;min-height:42px;max-height:110px;}
+.cinp:focus{border-color:var(--gold);}
+.sbtn{position:absolute;right:5px;bottom:5px;background:var(--gold);border:none;border-radius:7px;width:34px;height:34px;cursor:pointer;font-size:14px;touch-action:manipulation;}
+.qqs{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px;}
+.qq{background:var(--s2);border:1px solid var(--bdr2);border-radius:16px;padding:5px 11px;font-size:11px;color:var(--mt2);cursor:pointer;touch-action:manipulation;font-family:'DM Sans',sans-serif;}
+.qq:active{border-color:var(--gold);color:var(--gold);}
+/* SETTINGS */
+.sr{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bdr2);}
+.sr:last-child{border:none;}
+.si h4{font-size:13px;font-weight:500;}
+.si p{font-size:11px;color:var(--mt);margin-top:1px;}
+.tog{width:36px;height:20px;border-radius:10px;background:var(--s3);position:relative;cursor:pointer;flex-shrink:0;touch-action:manipulation;}
+.tog.on{background:var(--grn);}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s;}
+.tog.on::after{transform:translateX(16px);}
+/* QA GRID */
+.qag{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}
+.qab{background:var(--s2);border:1px solid var(--bdr2);border-radius:9px;padding:11px;font-size:12px;color:var(--txt);cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;touch-action:manipulation;}
+.qab:active{border-color:var(--gold);}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- MODAL -->
+<div class="overlay" id="modal">
+  <div class="mbox">
+    <div style="font-size:30px;margin-bottom:12px">🏨</div>
+    <h2>Welcome to ProHost AI</h2>
+    <p>Tera personal STR & Hotel Management Agent. Apna naam daal — agent personalized ho jaayega.</p>
+    <div class="field"><label>Tera Naam *</label><input type="text" id="sName" placeholder="e.g. Arjun"/></div>
+    <div class="field"><label>Brand / Company (optional)</label><input type="text" id="sBrand" placeholder="e.g. StayWell Properties"/></div>
+    <div class="field"><label>City / Region</label><input type="text" id="sCity" placeholder="e.g. Goa, Manali, Delhi"/></div>
+    <div class="al ag" style="margin-bottom:16px">💡 Claude AI se powered — internet chahiye. Data sirf teri device pe save hota hai.</div>
+    <button class="lbtn" onclick="doSetup()">Launch My Agent →</button>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="tb">
+  <div class="logo">ProHost<span style="color:var(--gold)">AI</span></div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <select class="psel" id="propSel" onchange="ST.activeProp=this.value;save()"><option value="all">All Props</option></select>
+    <div class="adot"><div class="pulse"></div><span>Active</span></div>
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sb">
+    <div class="nsec">Main</div>
+    <div class="ni active" onclick="nav('dash',this)"><span class="nico">📊</span>Dashboard</div>
+    <div class="ni" onclick="nav('props',this)"><span class="nico">🏠</span>Properties</div>
+    <div class="ni" onclick="nav('guest',this)"><span class="nico">💬</span>Guest AI</div>
+    <div class="ni" onclick="nav('price',this)"><span class="nico">💰</span>Pricing AI</div>
+    <div class="nsec">Clients</div>
+    <div class="ni" onclick="nav('clients',this)"><span class="nico">🤝</span>My Clients</div>
+    <div class="ni" onclick="nav('onboard',this)"><span class="nico">➕</span>Add Client</div>
+    <div class="nsec">Tools</div>
+    <div class="ni" onclick="nav('tasks',this)"><span class="nico">✅</span>Daily Tasks</div>
+    <div class="ni" onclick="nav('reviews',this)"><span class="nico">⭐</span>Reviews AI</div>
+    <div class="ni" onclick="nav('chat',this)"><span class="nico">🧠</span>Ask Agent</div>
+    <div class="nsec">Setup</div>
+    <div class="ni" onclick="nav('settings',this)"><span class="nico">⚙️</span>Settings</div>
+    <div class="ni" onclick="nav('auto',this)"><span class="nico">🔗</span>Automation</div>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="v-dash">
+      <div class="gp">
+        <div class="ph"><h2 id="dGreet">Welcome! 👋</h2><p id="dSub">Loading your dashboard...</p></div>
+        <div class="cg">
+          <div class="card"><div class="ch"><span class="ct">Properties</span><span class="badge bg" id="dPC">0</span></div><div class="stat" id="dPN">0</div><div class="sl">Total managed</div></div>
+          <div class="card"><div class="ch"><span class="ct">Avg Score</span><span class="badge bgr">Target 4.8+</span></div><div class="stat" id="dAS">–</div><div class="sl">All properties</div></div>
+          <div class="card"><div class="ch"><span class="ct">Clients</span><span class="badge bbl" id="dCC">0</span></div><div class="stat" id="dCN">0</div><div class="sl">Active owners</div></div>
+          <div class="card"><div class="ch"><span class="ct">AI Status</span><span class="badge bgr">Online</span></div><div class="stat" style="font-size:16px;margin-top:4px">🟢</div><div class="sl">Claude powered</div></div>
+        </div>
+        <div class="al ag" id="tip">Loading daily tip...</div>
+        <p style="font-size:13px;font-weight:500;margin-bottom:10px">Quick Actions</p>
+        <div class="qag">
+          <button class="qab" onclick="nav('guest',null)">💬 Guest Reply</button>
+          <button class="qab" onclick="nav('price',null)">💰 Check Pricing</button>
+          <button class="qab" onclick="nav('reviews',null)">⭐ Review Reply</button>
+          <button class="qab" onclick="nav('chat',null)">🧠 Ask Agent</button>
+          <button class="qab" onclick="nav('tasks',null)">✅ Today's Tasks</button>
+          <button class="qab" onclick="nav('onboard',null)">➕ Add Client</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROPERTIES -->
+    <div class="panel" id="v-props">
+      <div class="gp">
+        <div class="ph"><h2>Properties</h2><p>Manage all your properties</p></div>
+        <div class="itabs">
+          <button class="itab active" onclick="sit(this,'pl')">My Properties</button>
+          <button class="itab" onclick="sit(this,'pa')">+ Add Property</button>
+        </div>
+        <div class="ip active" id="pl">
+          <div id="propEl"></div>
+          <div id="propEmp" class="al ag" style="display:none">No properties yet — Add Property pe jao.</div>
+        </div>
+        <div class="ip" id="pa">
+          <div class="r2"><div class="field"><label>Property Name *</label><input type="text" id="pN" placeholder="Hillview Villa"/></div><div class="field"><label>Type</label><select id="pT"><option>Villa</option><option>Apartment</option><option>Farmhouse</option><option>Boutique Hotel</option><option>Homestay</option><option>Guesthouse</option></select></div></div>
+          <div class="r2"><div class="field"><label>Location</label><input type="text" id="pL" placeholder="Goa, North"/></div><div class="field"><label>Platform</label><select id="pPl"><option>Airbnb</option><option>Booking.com</option><option>Both</option><option>Direct Only</option></select></div></div>
+          <div class="r2"><div class="field"><label>Review Score</label><input type="number" id="pS" placeholder="4.7" step="0.1" min="1" max="5"/></div><div class="field"><label>Base Price/Night (₹)</label><input type="number" id="pPr" placeholder="5000"/></div></div>
+          <div class="r2"><div class="field"><label>Bedrooms</label><select id="pB"><option>1 BHK</option><option>2 BHK</option><option>3 BHK</option><option>4 BHK</option><option>5+ BHK</option></select></div><div class="field"><label>Owner Name</label><input type="text" id="pO" placeholder="Rahul Mehta"/></div></div>
+          <div class="field"><label>Notes</label><textarea id="pNo" placeholder="Special features, instructions..."></textarea></div>
+          <button class="btn bfull" onclick="addProp()">Save Property</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GUEST AI -->
+    <div class="panel" id="v-guest">
+      <div class="gp">
+        <div class="ph"><h2>Guest AI</h2><p>Kisi bhi guest situation ke liye instant message</p></div>
+        <div class="itabs">
+          <button class="itab active" onclick="sit(this,'gq')">Quick Reply</button>
+          <button class="itab" onclick="sit(this,'gci')">Check-in/out</button>
+          <button class="itab" onclick="sit(this,'gc')">Complaint</button>
+          <button class="itab" onclick="sit(this,'gcus')">Custom</button>
+        </div>
+        <div class="ip active" id="gq">
+          <div class="field"><label>Scenario</label><select id="gSc"><option value="booking_confirm">Booking Confirmation</option><option value="pre_arrival">Pre-arrival Info (24h before)</option><option value="welcome">Welcome Message (check-in day)</option><option value="mid_stay">Mid-stay Check-in</option><option value="checkout_reminder">Checkout Reminder</option><option value="review_request">Review Request</option><option value="late_checkout">Late Checkout Request</option><option value="early_checkin">Early Check-in Request</option><option value="noisy_guest">Noise Warning to Guest</option><option value="extra_guests">Extra Guests Warning</option><option value="damage_notice">Damage Notice</option></select></div>
+          <div class="r2"><div class="field"><label>Guest Name</label><input type="text" id="gNm" placeholder="Priya"/></div><div class="field"><label>Tone</label><select id="gTo"><option value="warm">Warm & Friendly</option><option value="professional">Professional</option><option value="firm">Firm but Polite</option></select></div></div>
+          <div class="field"><label>Extra Details</label><input type="text" id="gEx" placeholder="e.g. 3-night stay, Goa villa, checkout 11 AM"/></div>
+          <button class="btn bfull" onclick="doGuest()">Generate Message</button>
+          <div class="sw" id="gSp"><div class="sp"></div><p>Writing your message...</p></div>
+          <div class="ob" id="gOb"><div class="ol">✦ Message Ready</div><button class="cbtn" onclick="cp('gOt',this)">Copy</button><div class="ot" id="gOt"></div></div>
+        </div>
+        <div class="ip" id="gci">
+          <div class="r2"><div class="field"><label>Guest Name</label><input type="text" id="ciNm" placeholder="Amit"/></div><div class="field"><label>Message Type</label><select id="ciTy"><option value="checkin_24h">Check-in (24h before)</option><option value="checkin_day">Check-in Day of</option><option value="checkout_before">Checkout Day Before</option><option value="checkout_morning">Checkout Morning</option></select></div></div>
+          <div class="r2"><div class="field"><label>Property Name</label><input type="text" id="ciPr" placeholder="Sunset Villa"/></div><div class="field"><label>Door Code</label><input type="text" id="ciCo" placeholder="1234"/></div></div>
+          <div class="field"><label>WiFi Details</label><input type="text" id="ciWf" placeholder="Network: GuestNet | Pass: welcome123"/></div>
+          <div class="field"><label>Special Instructions</label><textarea id="ciIn" placeholder="Parking, gate code, special notes..."></textarea></div>
+          <button class="btn bfull" onclick="doCheckin()">Generate Message</button>
+          <div class="sw" id="ciSp"><div class="sp"></div><p>Preparing message...</p></div>
+          <div class="ob" id="ciOb"><div class="ol">✦ Message Ready</div><button class="cbtn" onclick="cp('ciOt',this)">Copy</button><div class="ot" id="ciOt"></div></div>
+        </div>
+        <div class="ip" id="gc">
+          <div class="al ar">Complaint response — empathetic aur professional</div>
+          <div class="field"><label>Guest Name</label><input type="text" id="cpNm" placeholder="Sneha"/></div>
+          <div class="field"><label>Issue Type</label><select id="cpTy"><option value="cleanliness">Cleanliness Issue</option><option value="ac_heat">AC/Heating Problem</option><option value="wifi">WiFi Not Working</option><option value="hot_water">No Hot Water</option><option value="noisy">Noisy Neighbors</option><option value="listing_mismatch">Listing Mismatch</option><option value="lock_issue">Lock/Entry Problem</option><option value="bug_insect">Bug/Insect Issue</option><option value="other">Other</option></select></div>
+          <div class="field"><label>Describe the Issue</label><textarea id="cpDs" placeholder="Guest ne kya kaha..."></textarea></div>
+          <div class="field"><label>What can you offer?</label><select id="cpOf"><option value="fix">Immediate Fix</option><option value="refund">Partial Refund</option><option value="discount">Discount Next Stay</option><option value="alternative">Alternative Solution</option><option value="assessing">Assessing First</option></select></div>
+          <button class="btn bfull" onclick="doComplaint()">Generate Response</button>
+          <div class="sw" id="cpSp"><div class="sp"></div><p>Crafting empathetic response...</p></div>
+          <div class="ob" id="cpOb"><div class="ol">✦ Response Ready</div><button class="cbtn" onclick="cp('cpOt',this)">Copy</button><div class="ot" id="cpOt"></div></div>
+        </div>
+        <div class="ip" id="gcus">
+          <div class="field"><label>Situation Describe Karo</label><textarea id="cuSi" style="min-height:90px" placeholder="e.g. Guest 3 PM check-in chahta hai lekin checkout 11 AM hai aur naya guest 2 PM pe aa raha hai..."></textarea></div>
+          <div class="field"><label>Tone</label><select id="cuTo"><option value="warm">Warm</option><option value="professional">Professional</option><option value="firm">Firm</option></select></div>
+          <button class="btn bfull" onclick="doCustom()">Generate Response</button>
+          <div class="sw" id="cuSp"><div class="sp"></div><p>Thinking...</p></div>
+          <div class="ob" id="cuOb"><div class="ol">✦ Response Ready</div><button class="cbtn" onclick="cp('cuOt',this)">Copy</button><div class="ot" id="cuOt"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRICING -->
+    <div class="panel" id="v-price">
+      <div class="gp">
+        <div class="ph"><h2>Pricing AI</h2><p>Smart pricing based on season, events, demand</p></div>
+        <div class="r2"><div class="field"><label>Property Type</label><select id="prTy"><option>Villa</option><option>Apartment</option><option>Farmhouse</option><option>Boutique Hotel</option><option>Homestay</option></select></div><div class="field"><label>Location</label><input type="text" id="prLo" placeholder="Goa, North Anjuna"/></div></div>
+        <div class="r2"><div class="field"><label>Bedrooms</label><select id="prBd"><option>1 BHK</option><option>2 BHK</option><option>3 BHK</option><option>4 BHK</option><option>5+ BHK</option></select></div><div class="field"><label>Base Price/Night (₹)</label><input type="number" id="prBa" placeholder="5000"/></div></div>
+        <div class="r2"><div class="field"><label>Season</label><select id="prSe"><option value="peak">Peak Season</option><option value="shoulder">Shoulder Season</option><option value="off">Off Season</option></select></div><div class="field"><label>Day Type</label><select id="prDy"><option value="weekend">Weekend (Fri–Sun)</option><option value="weekday">Weekday (Mon–Thu)</option></select></div></div>
+        <div class="field"><label>Special Event Nearby?</label><input type="text" id="prEv" placeholder="e.g. Sunburn Festival (leave blank if none)"/></div>
+        <div class="r2"><div class="field"><label>Review Score</label><input type="number" id="prSc" placeholder="4.7" step="0.1" min="1" max="5"/></div><div class="field"><label>Last 30d Occupancy %</label><input type="number" id="prOc" placeholder="65" min="0" max="100"/></div></div>
+        <button class="btn bfull" onclick="doPrice()">Get Price Recommendation</button>
+        <div class="sw" id="prSp"><div class="sp"></div><p>Analyzing market data...</p></div>
+        <div class="pr" id="prRes"><div class="ol">✦ Pricing Strategy</div><div id="prGr"></div><div id="prNo" style="margin-top:10px"></div></div>
+      </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div class="panel" id="v-clients">
+      <div class="gp">
+        <div class="ph"><h2>My Clients</h2><p>Property owners jo tere saath kaam karte hain</p></div>
+        <div id="clientEl"></div>
+        <div id="clientEmp" class="al ag" style="display:none">Add Client se naye owner add karo.</div>
+      </div>
+    </div>
+
+    <!-- ONBOARD -->
+    <div class="panel" id="v-onboard">
+      <div class="gp">
+        <div class="ph"><h2>Add New Client</h2><p>Naye property owner ko onboard karo</p></div>
+        <div class="itabs">
+          <button class="itab active" onclick="sit(this,'obf')">Client Details</button>
+          <button class="itab" onclick="sit(this,'obp')">Generate Pitch</button>
+          <button class="itab" onclick="sit(this,'obc')">Contract Points</button>
+        </div>
+        <div class="ip active" id="obf">
+          <div class="r2"><div class="field"><label>Owner Name *</label><input type="text" id="obNm" placeholder="Vikram Sharma"/></div><div class="field"><label>Phone/WhatsApp</label><input type="text" id="obPh" placeholder="+91 98765..."/></div></div>
+          <div class="r2"><div class="field"><label>Property Name</label><input type="text" id="obPr" placeholder="Serene Retreat"/></div><div class="field"><label>Location</label><input type="text" id="obLo" placeholder="Kasol, HP"/></div></div>
+          <div class="field"><label>How Found You</label><select id="obSo"><option>Instagram</option><option>LinkedIn</option><option>Referral</option><option>Cold Email</option><option>Direct Approach</option><option>Facebook Group</option></select></div>
+          <div class="field"><label>Their Pain Points</label><textarea id="obPa" placeholder="Low bookings, bad reviews, no time..."></textarea></div>
+          <div class="field"><label>Management Fee Agreed</label><input type="text" id="obFe" placeholder="15% of revenue / ₹20,000/month"/></div>
+          <button class="btn bfull" onclick="addClient()">Save Client</button>
+        </div>
+        <div class="ip" id="obp">
+          <div class="al ag">Owner se pehli meeting ke liye personalized pitch</div>
+          <div class="field"><label>Owner Name</label><input type="text" id="piNm" placeholder="Vikram"/></div>
+          <div class="field"><label>Property Details</label><input type="text" id="piPr" placeholder="3BHK villa in Kasol, 4.2 stars, 50% occupancy"/></div>
+          <div class="field"><label>Their Main Problem</label><textarea id="piPa" placeholder="Low bookings, bad reviews..."></textarea></div>
+          <button class="btn bfull" onclick="doPitch()">Generate Pitch</button>
+          <div class="sw" id="piSp"><div class="sp"></div><p>Crafting your pitch...</p></div>
+          <div class="ob" id="piOb"><div class="ol">✦ Pitch Ready</div><button class="cbtn" onclick="cp('piOt',this)">Copy</button><div class="ot" id="piOt"></div></div>
+        </div>
+        <div class="ip" id="obc">
+          <div class="al ag">Key contract points — legal review zaroor karo</div>
+          <div class="r2"><div class="field"><label>Fee Structure</label><select id="ctFe"><option value="percentage">% of Revenue</option><option value="fixed">Fixed Monthly</option><option value="hybrid">Hybrid</option></select></div><div class="field"><label>Duration</label><select id="ctDu"><option value="3 months">3 Months Trial</option><option value="6 months">6 Months</option><option value="1 year">1 Year</option><option value="ongoing">Ongoing</option></select></div></div>
+          <button class="btn bfull" onclick="doContract()">Generate Contract Points</button>
+          <div class="sw" id="ctSp"><div class="sp"></div><p>Drafting terms...</p></div>
+          <div class="ob" id="ctOb"><div class="ol">✦ Contract Points</div><button class="cbtn" onclick="cp('ctOt',this)">Copy</button><div class="ot" id="ctOt"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="panel" id="v-tasks">
+      <div class="gp">
+        <div class="ph"><h2>Daily Tasks</h2><p>Aaj ka poora plan AI se generate karo</p></div>
+        <div class="r2"><div class="field"><label>Properties Count</label><input type="number" id="tkPr" placeholder="3" min="1"/></div><div class="field"><label>Checkouts Today</label><input type="number" id="tkCO" placeholder="1" min="0"/></div></div>
+        <div class="r2"><div class="field"><label>Check-ins Today</label><input type="number" id="tkCI" placeholder="2" min="0"/></div><div class="field"><label>Pending Issues</label><input type="text" id="tkIs" placeholder="AC complaint, review pending..."/></div></div>
+        <button class="btn bfull" onclick="doTasks()">Generate Today's Plan</button>
+        <div class="sw" id="tkSp"><div class="sp"></div><p>Planning your day...</p></div>
+        <div class="ob" id="tkOb"><div class="ol">✦ Today's Game Plan</div><button class="cbtn" onclick="cp('tkOt',this)">Copy</button><div class="ot" id="tkOt"></div></div>
+      </div>
+    </div>
+
+    <!-- REVIEWS -->
+    <div class="panel" id="v-reviews">
+      <div class="gp">
+        <div class="ph"><h2>Reviews AI</h2><p>Public responses + review request messages</p></div>
+        <div class="itabs">
+          <button class="itab active" onclick="sit(this,'rres')">Respond to Review</button>
+          <button class="itab" onclick="sit(this,'rreq')">Request Review</button>
+        </div>
+        <div class="ip active" id="rres">
+          <div class="field"><label>Star Rating</label><select id="rvSt"><option value="5">⭐⭐⭐⭐⭐ 5 Stars</option><option value="4">⭐⭐⭐⭐ 4 Stars</option><option value="3">⭐⭐⭐ 3 Stars</option><option value="2">⭐⭐ 2 Stars</option><option value="1">⭐ 1 Star</option></select></div>
+          <div class="field"><label>Guest Review Text</label><textarea id="rvTx" placeholder="Paste the actual review here..."></textarea></div>
+          <div class="field"><label>Main Complaint (if any)</label><input type="text" id="rvCo" placeholder="e.g. cleanliness, WiFi, noise"/></div>
+          <button class="btn bfull" onclick="doRevReply()">Generate Public Response</button>
+          <div class="sw" id="rvSp"><div class="sp"></div><p>Crafting perfect response...</p></div>
+          <div class="ob" id="rvOb"><div class="ol">✦ Public Response</div><button class="cbtn" onclick="cp('rvOt',this)">Copy</button><div class="ot" id="rvOt"></div></div>
+        </div>
+        <div class="ip" id="rreq">
+          <div class="r2"><div class="field"><label>Guest Name</label><input type="text" id="rrNm" placeholder="Meera"/></div><div class="field"><label>Stay Quality</label><select id="rrSt"><option value="great">Great (loved it)</option><option value="good">Good (happy)</option><option value="okay">Okay (no complaints)</option></select></div></div>
+          <div class="field"><label>Personal Detail</label><input type="text" id="rrDt" placeholder="e.g. anniversary trip, first time in Goa"/></div>
+          <button class="btn bfull" onclick="doRevReq()">Generate Review Request</button>
+          <div class="sw" id="rrSp"><div class="sp"></div><p>Writing...</p></div>
+          <div class="ob" id="rrOb"><div class="ol">✦ Review Request</div><button class="cbtn" onclick="cp('rrOt',this)">Copy</button><div class="ot" id="rrOt"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="panel" id="v-chat">
+      <div class="qqs">
+        <div class="qq" onclick="qSend('Owner ne fees cut maangi — kya bolun?')">Owner fees cut maange</div>
+        <div class="qq" onclick="qSend('Guest refund demand kar raha hai — kya karun?')">Guest refund maange</div>
+        <div class="qq" onclick="qSend('Property occupancy low hai — kya karna chahiye?')">Low occupancy</div>
+        <div class="qq" onclick="qSend('Naye client ko convince karna hai — tips do')">Client convince</div>
+        <div class="qq" onclick="qSend('Aaj ke liye main priorities kya honi chahiye?')">Aaj ki priorities</div>
+      </div>
+      <div class="ca" id="chatA"></div>
+      <div class="cbot">
+        <div class="cwr">
+          <textarea class="cinp" id="chatI" placeholder="Kuch bhi pucho — decisions, problems, clients..." rows="1" onkeydown="ck(event)"></textarea>
+          <button class="sbtn" id="chatBtn" onclick="doChat()">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="panel" id="v-settings">
+      <div class="gp">
+        <div class="ph"><h2>Settings</h2><p>Agent customize karo</p></div>
+        <div class="field"><label>Your Name</label><input type="text" id="stNm" oninput="SS('name',this.value)"/></div>
+        <div class="field"><label>Brand Name</label><input type="text" id="stBr" oninput="SS('brand',this.value)"/></div>
+        <div class="field"><label>City / Region</label><input type="text" id="stCi" oninput="SS('city',this.value)"/></div>
+        <div class="field"><label>Default Fee %</label><input type="number" id="stFe" placeholder="15" oninput="SS('fee',this.value)"/></div>
+        <div style="border-top:1px solid var(--bdr2);margin:14px 0;padding-top:14px">
+          <div class="sr"><div class="si"><h4>Hinglish Mode</h4><p>Hindi+English mix for Indian clients</p></div><div class="tog on" id="togH" onclick="TS('hinglish',this)"></div></div>
+          <div class="sr"><div class="si"><h4>Formal English</h4><p>For international guests</p></div><div class="tog" id="togF" onclick="TS('formal',this)"></div></div>
+        </div>
+        <button class="bghost bfull" style="color:var(--red);border-color:rgba(224,90,90,0.3)" onclick="clearAll()">Reset All Data</button>
+      </div>
+    </div>
+
+    <!-- AUTOMATION -->
+    <div class="panel" id="v-auto">
+      <div class="gp">
+        <div class="ph"><h2>Automation Setup</h2><p>Real Airbnb/Booking.com automation — free stack</p></div>
+        <div class="al ag">⚡ Ek baar setup karo — sab automatic ho jaata hai. Sab FREE tools hain.</div>
+        <div class="card" style="margin-bottom:10px"><div class="ch"><span class="ct">Step 1 — Hospitable.com</span><span class="badge bgr">Free Plan</span></div><p style="font-size:12px;color:var(--mt);line-height:1.7">Airbnb ke liye auto-messages. Booking aate hi confirmation, pre-arrival, checkout messages auto-send. Free plan mein Airbnb support.</p></div>
+        <div class="card" style="margin-bottom:10px"><div class="ch"><span class="ct">Step 2 — Airbnb Smart Pricing</span><span class="badge bgr">Free</span></div><p style="font-size:12px;color:var(--mt);line-height:1.7">Airbnb app mein built-in. Auto price update based on demand. ProHost AI se strategy lo → implement karo.</p></div>
+        <div class="card" style="margin-bottom:10px"><div class="ch"><span class="ct">Step 3 — Zapier.com</span><span class="badge bgr">Free 100/month</span></div><p style="font-size:12px;color:var(--mt);line-height:1.7">New booking → WhatsApp notification. Checkout → Housekeeping alert. Review aaye → email. Sab automatic.</p></div>
+        <div class="card" style="margin-bottom:10px"><div class="ch"><span class="ct">Step 4 — ProHost AI</span><span class="badge bg">Lifetime Free</span></div><p style="font-size:12px;color:var(--mt);line-height:1.7">Guest messages → copy → Airbnb pe paste. Pricing, reviews, client pitches, daily tasks — sab ek jagah.</p></div>
+        <div class="al agr">✅ Total Cost: ₹0/month — Hospitable + Smart Pricing + Zapier + ProHost AI + Google Sheets</div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+var ST={};
+try{ST=JSON.parse(localStorage.getItem('ph4')||'{}');}catch(e){ST={};}
+if(!ST.p)ST.p=[];
+if(!ST.c)ST.c=[];
+if(!ST.s)ST.s={name:'',brand:'',city:'',fee:'15',hinglish:true,formal:false};
+
+function save(){try{localStorage.setItem('ph4',JSON.stringify(ST));}catch(e){}}
+
+window.addEventListener('load',function(){
+  if(ST.s.name){document.getElementById('modal').style.display='none';init();}
+});
+
+function doSetup(){
+  var n=document.getElementById('sName').value.trim();
+  if(!n){alert('Naam zaroor dalo!');return;}
+  ST.s.name=n;
+  ST.s.brand=document.getElementById('sBrand').value.trim();
+  ST.s.city=document.getElementById('sCity').value.trim();
+  save();
+  document.getElementById('modal').style.display='none';
+  init();
+}
+
+function init(){
+  loadUI();updateDash();renderProps();renderClients();initChat();loadTip();
+}
+
+function nav(id,el){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
+  var v=document.getElementById('v-'+id);
+  if(v)v.classList.add('active');
+  if(el)el.classList.add('active');
+}
+
+function sit(btn,id){
+  var wrap=btn.parentElement;
+  wrap.querySelectorAll('.itab').forEach(function(t){t.classList.remove('active');});
+  if(wrap.nextElementSibling){
+    var parent=wrap.parentElement;
+    parent.querySelectorAll('.ip').forEach(function(p){p.classList.remove('active');});
+  }
+  btn.classList.add('active');
+  var t=document.getElementById(id);
+  if(t)t.classList.add('active');
+}
+
+function loadUI(){
+  var s=ST.s;
+  var f=function(id,v){var e=document.getElementById(id);if(e)e.value=v||'';};
+  f('stNm',s.name);f('stBr',s.brand);f('stCi',s.city);f('stFe',s.fee);
+  var th=document.getElementById('togH');if(th){if(s.hinglish)th.classList.add('on');else th.classList.remove('on');}
+}
+function SS(k,v){ST.s[k]=v;save();}
+function TS(k,el){el.classList.toggle('on');ST.s[k]=el.classList.contains('on');save();}
+function clearAll(){if(confirm('Sab data delete hoga?')){localStorage.removeItem('ph4');location.reload();}}
+
+function updateDash(){
+  var n=ST.s.name||'there';
+  var h=new Date().getHours();
+  var g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  var dg=document.getElementById('dGreet');if(dg)dg.textContent=g+', '+n+'! 👋';
+  var ds=document.getElementById('dSub');if(ds)ds.textContent=ST.s.brand?'Welcome to '+ST.s.brand+' dashboard.':'Here\'s your overview for today.';
+  var pc=ST.p.length;
+  var pn=document.getElementById('dPN');if(pn)pn.textContent=pc;
+  var pdg=document.getElementById('dPC');if(pdg)pdg.textContent=pc;
+  var cc=ST.c.length;
+  var cn=document.getElementById('dCN');if(cn)cn.textContent=cc;
+  var cdg=document.getElementById('dCC');if(cdg)cdg.textContent=cc;
+  if(pc>0){
+    var tot=0,cnt=0;
+    ST.p.forEach(function(x){if(x.sc){tot+=parseFloat(x.sc);cnt++;}});
+    var as=document.getElementById('dAS');if(as)as.textContent=cnt>0?(tot/cnt).toFixed(1)+'★':'–';
+  }
+  var sel=document.getElementById('propSel');
+  if(sel){sel.innerHTML='<option value="all">All Props</option>';ST.p.forEach(function(p){sel.innerHTML+='<option value="'+p.id+'">'+p.nm+'</option>';});}
+}
+
+async function loadTip(){
+  var el=document.getElementById('tip');if(!el||!ST.s.name)return;
+  try{var t=await ai('Give a single practical 2-sentence daily tip for STR property manager '+ST.s.name+' in '+(ST.s.city||'India')+'. Specific and actionable. In Hinglish.');el.textContent='💡 '+t;}
+  catch(e){el.textContent='💡 Aaj ka tip: Har guest ke checkout ke 2 ghante baad review request bhejo — ye best response time hai!';}
+}
+
+function addProp(){
+  var nm=document.getElementById('pN').value.trim();
+  if(!nm){alert('Property name dalo!');return;}
+  ST.p.push({id:Date.now(),nm:nm,ty:document.getElementById('pT').value,lo:document.getElementById('pL').value,pl:document.getElementById('pPl').value,sc:document.getElementById('pS').value,pr:document.getElementById('pPr').value,bd:document.getElementById('pB').value,ow:document.getElementById('pO').value,no:document.getElementById('pNo').value});
+  save();renderProps();updateDash();
+  ['pN','pL','pS','pPr','pO','pNo'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  alert('Property saved! ✓');
+}
+
+function renderProps(){
+  var el=document.getElementById('propEl'),emp=document.getElementById('propEmp');
+  if(!el)return;
+  if(!ST.p.length){el.innerHTML='';if(emp)emp.style.display='block';return;}
+  if(emp)emp.style.display='none';
+  var ic={Villa:'🏡',Apartment:'🏢',Farmhouse:'🌾','Boutique Hotel':'🏨',Homestay:'🏠',Guesthouse:'🏘️'};
+  el.innerHTML=ST.p.map(function(p){return '<div class="pi"><div class="pico">'+(ic[p.ty]||'🏠')+'</div><div class="pinf"><div class="pnm">'+p.nm+'</div><div class="pmt">'+p.ty+' · '+(p.lo||'–')+' · '+p.pl+'</div>'+(p.ow?'<div class="pmt">Owner: '+p.ow+'</div>':'')+'</div><div style="font-size:13px;color:var(--gold);font-weight:600">'+(p.sc?p.sc+'★':'–')+'</div><button class="pdl" onclick="delProp('+p.id+')">✕</button></div>';}).join('');
+}
+function delProp(id){if(!confirm('Delete?'))return;ST.p=ST.p.filter(function(p){return p.id!==id;});save();renderProps();updateDash();}
+
+function addClient(){
+  var n=document.getElementById('obNm').value.trim();
+  if(!n){alert('Owner naam dalo!');return;}
+  ST.c.push({id:Date.now(),nm:n,ph:document.getElementById('obPh').value,pr:document.getElementById('obPr').value,lo:document.getElementById('obLo').value,so:document.getElementById('obSo').value,pa:document.getElementById('obPa').value,fe:document.getElementById('obFe').value,dt:new Date().toLocaleDateString('en-IN')});
+  save();renderClients();updateDash();alert('Client saved! ✓');
+}
+function renderClients(){
+  var el=document.getElementById('clientEl'),emp=document.getElementById('clientEmp');
+  if(!el)return;
+  if(!ST.c.length){el.innerHTML='';if(emp)emp.style.display='block';return;}
+  if(emp)emp.style.display='none';
+  el.innerHTML=ST.c.map(function(c){return '<div class="pi"><div class="pico" style="background:rgba(61,186,126,0.12)">🤝</div><div class="pinf"><div class="pnm">'+c.nm+'</div><div class="pmt">'+(c.pr||'Property TBD')+' · '+(c.lo||'–')+'</div><div class="pmt">'+c.so+' · '+c.dt+'</div>'+(c.fe?'<div class="pmt" style="color:var(--gold)">Fee: '+c.fe+'</div>':'')+'</div><button class="pdl" onclick="delClient('+c.id+')">✕</button></div>';}).join('');
+}
+function delClient(id){if(!confirm('Delete?'))return;ST.c=ST.c.filter(function(c){return c.id!==id;});save();renderClients();updateDash();}
+
+async function ai(prompt,sys){
+  var body={model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]};
+  if(sys)body.system=sys;
+  var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  var d=await r.json();
+  if(d.error)throw new Error(d.error.message);
+  var b=(d.content||[]).find(function(x){return x.type==='text';});
+  return b?b.text:'';
+}
+var LG=function(){return ST.s.hinglish?'Hinglish (friendly Hindi+English mix)':'English';};
+var HN=function(){return ST.s.name||'Your Host';};
+
+function show(sp,ob){document.getElementById(sp).classList.add('vis');document.getElementById(ob).classList.remove('vis');}
+function done(sp,ob,id,txt){document.getElementById(sp).classList.remove('vis');document.getElementById(id).textContent=txt;document.getElementById(ob).classList.add('vis');}
+function err(sp,msg){document.getElementById(sp).classList.remove('vis');alert('Error: '+msg);}
+
+async function doGuest(){
+  var sc=document.getElementById('gSc').value,nm=document.getElementById('gNm').value||'Guest',to=document.getElementById('gTo').value,ex=document.getElementById('gEx').value;
+  show('gSp','gOb');
+  try{var t=await ai('Expert property manager. Write '+to+' guest message for scenario "'+sc+'". Guest: '+nm+'. Context: '+(ex||'standard stay')+'. Host: '+HN()+'. Language: '+LG()+'. 2-4 paragraphs, no markdown.');done('gSp','gOb','gOt',t);}
+  catch(e){err('gSp',e.message);}
+}
+async function doCheckin(){
+  var ty=document.getElementById('ciTy').value,nm=document.getElementById('ciNm').value||'Guest',pr=document.getElementById('ciPr').value||'the property',co=document.getElementById('ciCo').value,wf=document.getElementById('ciWf').value,ins=document.getElementById('ciIn').value;
+  show('ciSp','ciOb');
+  try{var t=await ai('Write '+ty+' message for guest '+nm+' at '+pr+'. Door code: '+(co||'provided separately')+'. WiFi: '+(wf||'in welcome book')+'. Instructions: '+(ins||'none')+'. Host: '+HN()+'. Language: '+LG()+'. Clear and friendly, no markdown.');done('ciSp','ciOb','ciOt',t);}
+  catch(e){err('ciSp',e.message);}
+}
+async function doComplaint(){
+  var nm=document.getElementById('cpNm').value||'Guest',ty=document.getElementById('cpTy').value,ds=document.getElementById('cpDs').value,of=document.getElementById('cpOf').value;
+  show('cpSp','cpOb');
+  try{var t=await ai('Expert property manager. Empathetic complaint response. Guest: '+nm+'. Issue: '+ty+'. Details: '+(ds||'none')+'. Can offer: '+of+'. Host: '+HN()+'. Language: '+LG()+'. Acknowledge→Empathize→Own it→Action with timeline→Offer. Never defensive. 3-4 paragraphs, no markdown.');done('cpSp','cpOb','cpOt',t);}
+  catch(e){err('cpSp',e.message);}
+}
+async function doCustom(){
+  var si=document.getElementById('cuSi').value.trim(),to=document.getElementById('cuTo').value;
+  if(!si){alert('Situation describe karo!');return;}
+  show('cuSp','cuOb');
+  try{var t=await ai('Expert property manager. Handle this with '+to+' tone:\n'+si+'\nHost: '+HN()+'. City: '+(ST.s.city||'India')+'. Language: '+LG()+'. Write actual message. No markdown.');done('cuSp','cuOb','cuOt',t);}
+  catch(e){err('cuSp',e.message);}
+}
+async function doPrice(){
+  var ty=document.getElementById('prTy').value,lo=document.getElementById('prLo').value||'India',bd=document.getElementById('prBd').value,ba=document.getElementById('prBa').value||5000,se=document.getElementById('prSe').value,dy=document.getElementById('prDy').value,ev=document.getElementById('prEv').value,sc=document.getElementById('prSc').value,oc=document.getElementById('prOc').value;
+  document.getElementById('prSp').classList.add('vis');document.getElementById('prRes').classList.remove('vis');
+  try{
+    var t=await ai('STR pricing expert India. Property: '+bd+' '+ty+' in '+lo+'. Base: Rs'+ba+'/night. Season: '+se+'. Day: '+dy+'. Event: '+(ev||'none')+'. Score: '+(sc||'4.5')+'. Occupancy: '+(oc||'65')+'%. Respond ONLY as valid JSON: {"base_price":"Rs X,XXX","weekend_price":"Rs X,XXX","event_price":"Rs X,XXX","min_price":"Rs X,XXX","reasoning":"2 sentences","tip":"1 tip","increase_pct":"X%"}');
+    var d=JSON.parse(t.replace(/```json|```/g,'').trim());
+    document.getElementById('prGr').innerHTML='<div class="prow"><span class="pty">Recommended Base</span><span class="pvl">'+d.base_price+'</span></div><div class="prow"><span class="pty">Weekend Price</span><span class="pvl">'+d.weekend_price+'</span></div><div class="prow"><span class="pty">Event Price</span><span class="pvl">'+d.event_price+'</span></div><div class="prow"><span class="pty">Minimum Price</span><span class="pvl">'+d.min_price+'</span></div><div class="prow"><span class="pty">Revenue increase</span><span class="pvl" style="color:var(--grn)">'+d.increase_pct+'</span></div>';
+    document.getElementById('prNo').innerHTML='<div class="al ag">'+d.reasoning+'</div><div class="al agr">💡 '+d.tip+'</div>';
+    document.getElementById('prRes').classList.add('vis');
+  }catch(e){alert('Error getting pricing. Try again.');}
+  document.getElementById('prSp').classList.remove('vis');
+}
+async function doPitch(){
+  var nm=document.getElementById('piNm').value||'the owner',pr=document.getElementById('piPr').value,pa=document.getElementById('piPa').value;
+  show('piSp','piOb');
+  try{var t=await ai('Sales pitch for first meeting with property owner '+nm+'. Property: '+(pr||'STR in India')+'. Their pain: '+(pa||'low bookings')+'. Your name: '+HN()+'. Brand: '+(ST.s.brand||'property management')+'. Language: '+LG()+'. 5-7 paragraphs: identify pain, show understanding, present solution, show ROI, next step. No markdown.');done('piSp','piOb','piOt',t);}
+  catch(e){err('piSp',e.message);}
+}
+async function doContract(){
+  var fe=document.getElementById('ctFe').value,du=document.getElementById('ctDu').value;
+  show('ctSp','ctOb');
+  try{var t=await ai('10 key contract points for property management agreement. Fee: '+fe+'. Duration: '+du+'. Manager: '+HN()+'. Language: '+LG()+'. Cover: services, fees, payment, termination, liability, reporting, maintenance, disputes. Note: recommend legal review. No markdown.');done('ctSp','ctOb','ctOt',t);}
+  catch(e){err('ctSp',e.message);}
+}
+async function doTasks(){
+  var pr=document.getElementById('tkPr').value||ST.p.length||1,co=document.getElementById('tkCO').value||0,ci=document.getElementById('tkCI').value||0,is=document.getElementById('tkIs').value;
+  show('tkSp','tkOb');
+  try{var t=await ai('Daily task list for property manager '+HN()+'. Properties: '+pr+'. Checkouts: '+co+'. Check-ins: '+ci+'. Issues: '+(is||'none')+'. City: '+(ST.s.city||'India')+'. Morning-to-evening schedule with specific times. Include guest comms, housekeeping, pricing, reviews. Language: '+LG()+'. No markdown.');done('tkSp','tkOb','tkOt',t);}
+  catch(e){err('tkSp',e.message);}
+}
+async function doRevReply(){
+  var st=document.getElementById('rvSt').value,tx=document.getElementById('rvTx').value,co=document.getElementById('rvCo').value;
+  show('rvSp','rvOb');
+  try{var t=await ai('Professional PUBLIC response to '+st+'-star review for property by '+HN()+'. Review: "'+(tx||'no text')+'" Complaint: '+(co||'none')+'. Professional, empathetic, never defensive. 4-5 stars: thank warmly. 1-3 stars: acknowledge, action taken, invite back. Max 100 words. In English.');done('rvSp','rvOb','rvOt',t);}
+  catch(e){err('rvSp',e.message);}
+}
+async function doRevReq(){
+  var nm=document.getElementById('rrNm').value||'Guest',st=document.getElementById('rrSt').value,dt=document.getElementById('rrDt').value;
+  show('rrSp','rrOb');
+  try{var t=await ai('Warm review request for guest '+nm+'. Stay: '+st+'. Detail: '+(dt||'enjoyable stay')+'. Host: '+HN()+'. Personal, not templated. Mention you already reviewed them. 3-4 sentences. Language: '+LG()+'. No markdown.');done('rrSp','rrOb','rrOt',t);}
+  catch(e){err('rrSp',e.message);}
+}
+
+var CM=[];
+function initChat(){
+  var a=document.getElementById('chatA');if(!a)return;
+  a.innerHTML='';CM=[];
+  addMsg('ai','Namaste '+(ST.s.name||'there')+'! 👋 Main tera personal property management expert hoon. Koi bhi decision, problem ya situation — seedha pucho. Kya chal raha hai aaj?');
+}
+function addMsg(type,text){
+  var a=document.getElementById('chatA');if(!a)return;
+  var d=document.createElement('div');
+  d.className='msg m'+(type==='ai'?'ai':'us');
+  d.innerHTML='<div class="mn">'+(type==='ai'?'ProHost Agent':'You')+'</div><div class="mb">'+text.replace(/\n/g,'<br>')+'</div>';
+  a.appendChild(d);a.scrollTop=a.scrollHeight;
+}
+async function doChat(){
+  var inp=document.getElementById('chatI'),btn=document.getElementById('chatBtn');
+  var msg=inp.value.trim();if(!msg)return;
+  inp.value='';addMsg('user',msg);CM.push({role:'user',content:msg});btn.disabled=true;
+  var a=document.getElementById('chatA');
+  var td=document.createElement('div');td.className='msg mai';
+  td.innerHTML='<div class="mn">ProHost Agent</div><div class="mb" style="color:var(--mt)">Soch raha hoon...</div>';
+  a.appendChild(td);a.scrollTop=a.scrollHeight;
+  try{
+    var sys='You are ProHost, expert AI property management consultant for '+ST.s.name+' managing STR/hotels in '+(ST.s.city||'India')+'. Brand: '+(ST.s.brand||'property management')+'. Respond in '+(ST.s.hinglish?'Hinglish (friendly Hindi+English)':'English')+'. Be practical, specific, action-oriented.';
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:CM.slice(-12)})});
+    var d=await r.json();
+    var b=(d.content||[]).find(function(x){return x.type==='text';});
+    var reply=b?b.text:'Error hua, dobara try karo.';
+    td.querySelector('.mb').innerHTML=reply.replace(/\n/g,'<br>');
+    td.querySelector('.mb').style.color='';
+    CM.push({role:'assistant',content:reply});
+    ST.chat=CM.slice(-20);save();
+  }catch(e){td.querySelector('.mb').textContent='Network error. Internet check karo.';}
+  btn.disabled=false;a.scrollTop=a.scrollHeight;
+}
+function qSend(q){var i=document.getElementById('chatI');if(i){i.value=q;doChat();}}
+function ck(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doChat();}}
+function cp(id,btn){
+  var el=document.getElementById(id);if(!el)return;
+  var txt=el.textContent;
+  if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){if(btn){btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy';},2000);}});}
+  else{var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);if(btn){btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy';},2000);}}
+}
+</script>
+</body>
+</html>
